@@ -84,8 +84,6 @@
 #include "DataFormats/RPCDigi/interface/RPCDigi.h"
 #include <DataFormats/MuonData/interface/MuonDigiCollection.h>
 
-
-
 #include <iostream>
 #include <vector>
 #include "TMath.h"
@@ -171,8 +169,6 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   bmtfPhInputTag_ = consumes<L1MuDTChambPhContainer>(pset.getParameter<edm::InputTag>("bmtfInputPhDigis"));
   bmtfThInputTag_ = consumes<L1MuDTChambThContainer>(pset.getParameter<edm::InputTag>("bmtfInputThDigis"));
   bmtfOutputTag_ = consumes<l1t::RegionalMuonCandBxCollection>(pset.getParameter<edm::InputTag>("bmtfOutputDigis"));
-//   bmtfInputTag_ = pset.getParameter<edm::InputTag>("bmtfOutputDigis");
-//   bmtfOutputTag_ = consumes<l1t::RegionalMuonCandBxCollection>(edm::InputTag(bmtfInputTag_));
 
    OnlyBarrel_ = pset.getParameter<bool>("OnlyBarrel");
 
