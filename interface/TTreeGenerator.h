@@ -105,7 +105,6 @@ private:
   edm::InputTag lumiInputTag_;
   edm::EDGetTokenT<LumiDetails> lumiProducerToken_ ;
   edm::EDGetTokenT<LumiSummary> lumiSummaryToken_;
-  edm::InputTag bmtfInputTag_;
   edm::EDGetTokenT<L1MuDTChambPhContainer> bmtfPhInputTag_;
   edm::EDGetTokenT<L1MuDTChambThContainer> bmtfThInputTag_;
   edm::EDGetTokenT<l1t::RegionalMuonCandBxCollection> bmtfOutputTag_; 
@@ -152,6 +151,10 @@ private:
   short igttt; // legacy
   short ihlt;
   short irpcrechits;
+  short irpcdigi_TwinMux;
+  short irpcrechits_TwinMux;
+  short bmtf_size;
+
 
   reco::BeamSpot beamspot;
 

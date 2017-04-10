@@ -165,12 +165,10 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
        
   lumiInputTag_      = pset.getParameter<edm::InputTag>("lumiInputTag");
   lumiProducerToken_ = consumes<LumiDetails, edm::InLumi>(lumiInputTag_);
-  
+
   bmtfPhInputTag_ = consumes<L1MuDTChambPhContainer>(pset.getParameter<edm::InputTag>("bmtfInputPhDigis"));
   bmtfThInputTag_ = consumes<L1MuDTChambThContainer>(pset.getParameter<edm::InputTag>("bmtfInputThDigis"));
-//bmtfOutputTag_ = consumes<l1t::RegionalMuonCandBxCollection>(pset.getParameter<edm::InputTag>("bmtfOutputDigis"));
-  bmtfInputTag_ = pset.getParameter<edm::InputTag>("bmtfOutputDigis");
-  bmtfOutputTag_ = consumes<l1t::RegionalMuonCandBxCollection>(edm::InputTag(bmtfInputTag_));
+  bmtfOutputTag_ = consumes<l1t::RegionalMuonCandBxCollection>(pset.getParameter<edm::InputTag>("bmtfOutputDigis"));
 
    OnlyBarrel_ = pset.getParameter<bool>("OnlyBarrel");
 
@@ -984,7 +982,7 @@ void TTreeGenerator::analyzeUnpackingRpcRecHit(const edm::Event& event)
   edm::Handle<RPCRecHitCollection> UnpackingRpcHits;
   event.getByToken(UnpackingRpcRecHitToken_, UnpackingRpcHits);
   RPCRecHitCollection::const_iterator recHit;
-  irpcrechits=0;
+  irpcrechits_TwinMux=0;
   for(recHit = UnpackingRpcHits->begin(); recHit != UnpackingRpcHits->end(); recHit++){ 
     int cls = recHit->clusterSize();
     int firststrip = recHit->firstClusterStrip();
@@ -1000,17 +998,17 @@ void TTreeGenerator::analyzeUnpackingRpcRecHit(const edm::Event& event)
 
 	if(OnlyBarrel_ && region != 0) continue;
 	    
-    Unpacking_Rpc_RecHit_region.push_back(region);
-    Unpacking_Rpc_RecHit_clusterSize.push_back(cls);
-    Unpacking_Rpc_RecHit_strip.push_back(firststrip);
-    Unpacking_Rpc_RecHit_bx.push_back(bx);
-    Unpacking_Rpc_RecHit_station.push_back(stat);
-    Unpacking_Rpc_RecHit_sector.push_back(sect);
-    Unpacking_Rpc_RecHit_layer.push_back(layer);
-    Unpacking_Rpc_RecHit_subsector.push_back(subsector);
-    Unpacking_Rpc_RecHit_roll.push_back(roll);
-    Unpacking_Rpc_RecHit_ring.push_back(ring);
-    irpcrechits++;
+    RpcRechit_TwinMux_region.push_back(region);
+    RpcRechit_TwinMux_clusterSize.push_back(cls);
+    RpcRechit_TwinMux_strip.push_back(firststrip);
+    RpcRechit_TwinMux_bx.push_back(bx);
+    RpcRechit_TwinMux_station.push_back(stat);
+    RpcRechit_TwinMux_sector.push_back(sect);
+    RpcRechit_TwinMux_layer.push_back(layer);
+    RpcRechit_TwinMux_subsector.push_back(subsector);
+    RpcRechit_TwinMux_roll.push_back(roll);
+    RpcRechit_TwinMux_ring.push_back(ring);
+    irpcrechits_TwinMux++;
   }
   return;
 }
@@ -1021,6 +1019,7 @@ void TTreeGenerator::analyzeRPCunpacking(const edm::Event& event)
 	event.getByToken(rpcToken_, rpc);
 	auto chamber = rpc->begin();
 	auto chend  = rpc->end();
+	irpcdigi_TwinMux=0;
 	for( ; chamber != chend; ++chamber ) {
 	
 		if(OnlyBarrel_ && (*chamber).first.region() != 0) continue;
@@ -1028,33 +1027,27 @@ void TTreeGenerator::analyzeRPCunpacking(const edm::Event& event)
    		auto digi = (*chamber).second.first;
 	    auto dend = (*chamber).second.second;
 		for( ; digi != dend; ++digi ) {
-			TwinMux_Rpc_bx.push_back(digi->bx());
-			TwinMux_Rpc_strip.push_back(digi->strip());
+			RpcDigi_TwinMux_bx.push_back(digi->bx());
+			RpcDigi_TwinMux_strip.push_back(digi->strip());
 		}
-			TwinMux_Rpc_region.push_back((*chamber).first.region()); 
-			TwinMux_Rpc_ring.push_back((*chamber).first.ring());
-			TwinMux_Rpc_station.push_back((*chamber).first.station());
-			TwinMux_Rpc_layer.push_back((*chamber).first.layer());
-			TwinMux_Rpc_subsector.push_back((*chamber).first.subsector()); 
-			TwinMux_Rpc_roll.push_back((*chamber).first.roll());
-			TwinMux_Rpc_trIndex.push_back((*chamber).first.trIndex());
-			TwinMux_Rpc_det.push_back((*chamber).first.det());
-			TwinMux_Rpc_subdetId.push_back((*chamber).first.subdetId()); 
-			TwinMux_Rpc_rawId.push_back((*chamber).first.rawId()); 
+		RpcDigi_TwinMux_region.push_back((*chamber).first.region()); 
+		RpcDigi_TwinMux_ring.push_back((*chamber).first.ring());
+		RpcDigi_TwinMux_station.push_back((*chamber).first.station());
+		RpcDigi_TwinMux_layer.push_back((*chamber).first.layer());
+		RpcDigi_TwinMux_sector.push_back((*chamber).first.sector());
+		RpcDigi_TwinMux_subsector.push_back((*chamber).first.subsector()); 
+		RpcDigi_TwinMux_roll.push_back((*chamber).first.roll());
+		RpcDigi_TwinMux_trIndex.push_back((*chamber).first.trIndex());
+		RpcDigi_TwinMux_det.push_back((*chamber).first.det());
+		RpcDigi_TwinMux_subdetId.push_back((*chamber).first.subdetId()); 
+		RpcDigi_TwinMux_rawId.push_back((*chamber).first.rawId()); 
+		irpcdigi_TwinMux++;
 	}  
 
 }
 
 void TTreeGenerator::analyzeBMTF(const edm::Event& event)
 {
-  //l1bmtf->Reset();
-
-  edm::Handle<L1MuDTChambPhContainer > myL1MuDTChambPhContainer;
-  event.getByToken(bmtfPhInputTag_,myL1MuDTChambPhContainer);
-
-  edm::Handle<L1MuDTChambThContainer > myL1MuDTChambThContainer;
-  event.getByToken(bmtfThInputTag_,myL1MuDTChambThContainer);
-
 ///Output of BMTF
   int ctr = 0;
   edm::Handle<l1t::RegionalMuonCandBxCollection> mycoll;
@@ -1069,17 +1062,17 @@ void TTreeGenerator::analyzeBMTF(const edm::Event& event)
 			      Bmtf_Pt.push_back(mu->hwPt()*0.5);
 			      Bmtf_Eta.push_back(mu->hwEta()*0.010875);
 			      Bmtf_FineBit.push_back(mu->hwHF());
-			      float phi = 2*mu->hwPhi()*TMath::Pi()/576;
-// 			      phi = mu->processor()*48 + localPhi;
-// 			      phi += 576 - 24;
-// 			      phi = phi % 576;
-			      Bmtf_Phi.push_back(phi);
-			      // Bmtf_Phi.push_back(mu->hwPhi());
+			      Bmtf_Phi.push_back(mu->hwPhi());
+			      //2*mu->hwPhi()*TMath::Pi()/576;
+			      int phi = 0;
+			      phi = mu->processor()*48 + mu->hwPhi();
+			      phi += 576 - 24;
+			      phi = phi % 576;
+			      Bmtf_GlobalPhi.push_back(phi);
 		    	  Bmtf_qual.push_back(mu->hwQual());
 	    		  Bmtf_ch.push_back(mu->hwSign());
     			  Bmtf_bx.push_back(i);
 			      Bmtf_processor.push_back(mu->processor());
-    			 // Bmtf__.Bmtf_trAddress.push_back(mu->hwTrackAddress());
 			      std::map<int, int>  trAdd;
 	    		  trAdd = mu->trackAddress();
 		    	  int wheel = pow(-1,trAdd[0]) * trAdd[1];
@@ -1088,14 +1081,74 @@ void TTreeGenerator::analyzeBMTF(const edm::Event& event)
     			  Bmtf_trAddress.push_back(trAdd[3]);
 	    		  Bmtf_trAddress.push_back(trAdd[4]);
 			      Bmtf_trAddress.push_back(trAdd[5]);
-
     			} // for mu
-    			
 		        Bmtf_Size = ctr;
  	 } // for i
   } //if
   else 
       edm::LogInfo("L1Prompt") << "can't find L1MuMBTrackContainer";
+      
+
+  edm::Handle<L1MuDTChambPhContainer> bmtfPhInputs;  
+  event.getByToken(bmtfPhInputTag_, bmtfPhInputs);
+  
+  if(!(bmtfPhInputs.isValid())) std::cout<<"no  ok"<<std::endl;
+  
+   L1MuDTChambPhContainer::Phi_Container const *PhContainer = bmtfPhInputs->getContainer();
+
+   Bmtf_phSize = PhContainer->size();
+   int iphtr=0;
+   for( L1MuDTChambPhContainer::Phi_Container::const_iterator DTPhDigiItr =  PhContainer->begin() ;
+       DTPhDigiItr != PhContainer->end(); ++DTPhDigiItr ){
+		      Bmtf_phBx.push_back     (  DTPhDigiItr->bxNum() );
+    		  Bmtf_phTs2Tag.push_back     ( DTPhDigiItr->Ts2Tag() );
+		      Bmtf_phWh.push_back     (  DTPhDigiItr->whNum() );
+	    	  Bmtf_phSe.push_back     (  DTPhDigiItr->scNum() );
+	    	  Bmtf_phSt.push_back     (  DTPhDigiItr->stNum() );
+    		  Bmtf_phAng.push_back    (  DTPhDigiItr->phi()   );
+		      Bmtf_phBandAng.push_back(  DTPhDigiItr->phiB()  );
+    		  Bmtf_phCode.push_back   (  DTPhDigiItr->code()  );
+		      iphtr++;
+    }
+
+
+
+  edm::Handle<L1MuDTChambThContainer > bmtfThInputs;
+  event.getByToken(bmtfThInputTag_, bmtfThInputs); 
+  
+   L1MuDTChambThContainer::The_Container const *ThContainer = bmtfThInputs->getContainer();
+   
+   if(!(bmtfThInputs.isValid())) std::cout<<"no  ok"<<std::endl;
+
+   int ithtr=0;
+   Bmtf_thSize = ThContainer->size();
+
+   for( L1MuDTChambThContainer::The_Container::const_iterator
+	 DTThDigiItr =  ThContainer->begin() ;
+       DTThDigiItr != ThContainer->end() ;
+       ++DTThDigiItr )
+     {
+
+      Bmtf_thBx.push_back( DTThDigiItr->bxNum()  );
+      Bmtf_thWh.push_back( DTThDigiItr->whNum() );
+      Bmtf_thSe.push_back( DTThDigiItr->scNum() );
+      Bmtf_thSt.push_back( DTThDigiItr->stNum() );
+
+      ostringstream  ss1, ss2; 
+      ss1.clear(); ss2.clear();
+      ss1<<"9"; ss2<<"9";
+
+      for(int j=0; j<7; j++){
+        ss1<<DTThDigiItr->position(j);
+        ss2<<DTThDigiItr->code(j) ;
+      }
+      Bmtf_thTheta.push_back(stoi(ss1.str())) ;
+      Bmtf_thCode.push_back(stoi(ss2.str()));
+
+      ithtr++;
+
+    }     
+
   
 }
 
@@ -1330,6 +1383,7 @@ void TTreeGenerator::beginJob()
    tree_->Branch("bmtfPt", &Bmtf_Pt);
    tree_->Branch("bmtfEta", &Bmtf_Eta);
    tree_->Branch("bmtfPhi", &Bmtf_Phi);
+   tree_->Branch("bmtfGlobalPhi", &Bmtf_GlobalPhi);
    tree_->Branch("bmftFineBit", &Bmtf_FineBit);
    tree_->Branch("bmtfqual", &Bmtf_qual);
    tree_->Branch("bmtfch", &Bmtf_ch);
@@ -1338,32 +1392,54 @@ void TTreeGenerator::beginJob()
    tree_->Branch("bmtfwh", &Bmtf_wh);
    tree_->Branch("bmtftrAddress", &Bmtf_trAddress);
    tree_->Branch("bmtfSize", &Bmtf_Size);
+   
+   tree_->Branch("bmtfPhSize", &Bmtf_phSize);
+   tree_->Branch("bmtfPhBx", &Bmtf_phBx);
+   tree_->Branch("bmtfPhWh", &Bmtf_phWh);
+   tree_->Branch("bmtfPhSe", &Bmtf_phSe);
+   tree_->Branch("bmtfPhSt", &Bmtf_phSt);
+   tree_->Branch("bmtfPhAng", &Bmtf_phAng);
+   tree_->Branch("bmtfPhBandAng", &Bmtf_phBandAng);
+   tree_->Branch("bmtfPhCode", &Bmtf_phCode);
+   tree_->Branch("bmtfPhTs2Tag", &Bmtf_phTs2Tag);
+   
+   tree_->Branch("bmtfThSize", &Bmtf_thSize);
+   tree_->Branch("bmtfThBx", &Bmtf_thBx);
+   tree_->Branch("bmtfThWh", &Bmtf_thWh);
+   tree_->Branch("bmtfThSe", &Bmtf_thSe);
+   tree_->Branch("bmtfThSt", &Bmtf_thSt);
+   tree_->Branch("bmtfThTheta", &Bmtf_thTheta);
+   tree_->Branch("bmtfThCode", &Bmtf_thCode);
+  
 
    // Unpacking RPC
-   tree_->Branch("twinMuxRpcBx", &TwinMux_Rpc_bx);
-   tree_->Branch("twinMuxRpcStrip", &TwinMux_Rpc_strip);
-   tree_->Branch("twinMuxRpcRegion", &TwinMux_Rpc_region);
-   tree_->Branch("twinMuxRpcRing", &TwinMux_Rpc_ring);
-   tree_->Branch("twinMuxRpcStation", &TwinMux_Rpc_station);
-   tree_->Branch("twinMuxRpcLayer", &TwinMux_Rpc_layer);
-   tree_->Branch("twinMuxRpcSubSector", &TwinMux_Rpc_subsector);
-   tree_->Branch("twinMuxRpcRoll", &TwinMux_Rpc_roll);
-   tree_->Branch("twinMuxRpcTrIndex", &TwinMux_Rpc_trIndex);
-   tree_->Branch("twinMuxRpcDet", &TwinMux_Rpc_det);
-   tree_->Branch("twinMuxRpcSubdetId", &TwinMux_Rpc_subdetId);
-   tree_->Branch("twinMuxRpcRawId", &TwinMux_Rpc_rawId);
+   tree_->Branch("NirpcdigiTwinMux", &irpcdigi_TwinMux);
+   tree_->Branch("RpcDigiTwinMuxBx", &RpcDigi_TwinMux_bx);
+   tree_->Branch("RpcDigiTwinMuxStrip", &RpcDigi_TwinMux_strip);
+   tree_->Branch("RpcDigiTwinMuxRegion", &RpcDigi_TwinMux_region);
+   tree_->Branch("RpcDigiTwinMuxRing", &RpcDigi_TwinMux_ring);
+   tree_->Branch("RpcDigiTwinMuxStation", &RpcDigi_TwinMux_station);
+   tree_->Branch("RpcDigiTwinMuxLayer", &RpcDigi_TwinMux_layer);
+   tree_->Branch("RpcDigiTwinMuxSector", &RpcDigi_TwinMux_sector);
+   tree_->Branch("RpcDigiTwinMuxSubSector", &RpcDigi_TwinMux_subsector);
+   tree_->Branch("RpcDigiTwinMuxRoll", &RpcDigi_TwinMux_roll);
+   tree_->Branch("RpcDigiTwinMuxTrIndex", &RpcDigi_TwinMux_trIndex);
+   tree_->Branch("RpcDigiTwinMuxDet", &RpcDigi_TwinMux_det);
+   tree_->Branch("RpcDigiTwinMuxSubdetId", &RpcDigi_TwinMux_subdetId);
+   tree_->Branch("RpcDigiTwinMuxRawId", &RpcDigi_TwinMux_rawId);
 
    //Unpacking RPC RecHit
-   tree_->Branch("UnpackingRpcRecHitRegion", &Unpacking_Rpc_RecHit_region);
-   tree_->Branch("UnpackingRpcRecHitClusterSize", &Unpacking_Rpc_RecHit_clusterSize);
-   tree_->Branch("UnpackingRpcRecHitStrip", &Unpacking_Rpc_RecHit_strip);
-   tree_->Branch("UnpackingRpcRecHitBx", &Unpacking_Rpc_RecHit_bx);
-   tree_->Branch("UnpackingRpcRecHitStation", &Unpacking_Rpc_RecHit_station);
-   tree_->Branch("UnpackingRpcRecHitSector", &Unpacking_Rpc_RecHit_sector);
-   tree_->Branch("UnpackingRpcRecHitLayer", &Unpacking_Rpc_RecHit_layer);
-   tree_->Branch("UnpackingRpcRecHitSubsector", &Unpacking_Rpc_RecHit_subsector);
-   tree_->Branch("UnpackingRpcRecHitRoll", &Unpacking_Rpc_RecHit_roll);
-   tree_->Branch("UnpackingRpcRecHitRing", &Unpacking_Rpc_RecHit_ring);
+   tree_->Branch("NirpcrechitsTwinMux", &irpcrechits_TwinMux);
+   tree_->Branch("RpcRecHitTwinMuxRegion", &RpcRechit_TwinMux_region);
+   tree_->Branch("RpcRecHitTwinMuxClusterSize", &RpcRechit_TwinMux_clusterSize);
+   tree_->Branch("RpcRecHitTwinMuxStrip", &RpcRechit_TwinMux_strip);
+   tree_->Branch("RpcRecHitTwinMuxBx", &RpcRechit_TwinMux_bx);
+   tree_->Branch("RpcRecHitTwinMuxStation", &RpcRechit_TwinMux_station);
+   tree_->Branch("RpcRecHitTwinMuxSector", &RpcRechit_TwinMux_sector);
+   tree_->Branch("RpcRecHitTwinMuxLayer", &RpcRechit_TwinMux_layer);
+   tree_->Branch("RpcRecHitTwinMuxSubsector", &RpcRechit_TwinMux_subsector);
+   tree_->Branch("RpcRecHitTwinMuxRoll", &RpcRechit_TwinMux_roll);
+   tree_->Branch("RpcRecHitTwinMuxRing", &RpcRechit_TwinMux_ring);
 
   return;
 }
@@ -1554,6 +1630,7 @@ inline void TTreeGenerator::clear_Arrays()
    Bmtf_Pt.clear();
    Bmtf_Eta.clear();
    Bmtf_Phi.clear();
+   Bmtf_GlobalPhi.clear();
    Bmtf_qual.clear();
    Bmtf_ch.clear();
    Bmtf_bx.clear();
@@ -1562,30 +1639,47 @@ inline void TTreeGenerator::clear_Arrays()
    Bmtf_wh.clear();
    Bmtf_FineBit.clear();
 
-   TwinMux_Rpc_bx.clear();
-   TwinMux_Rpc_strip.clear();
-   TwinMux_Rpc_region.clear();
-   TwinMux_Rpc_ring.clear();
-   TwinMux_Rpc_station.clear();
-   TwinMux_Rpc_layer.clear();
-   TwinMux_Rpc_subsector.clear();
-   TwinMux_Rpc_roll.clear();
-   TwinMux_Rpc_trIndex.clear();
-   TwinMux_Rpc_det.clear();
-   TwinMux_Rpc_subdetId.clear();
-   TwinMux_Rpc_rawId.clear();
+	Bmtf_phBx.clear();
+	Bmtf_phWh.clear();
+	Bmtf_phSe.clear();
+	Bmtf_phSt.clear();
+	Bmtf_phAng.clear();
+	Bmtf_phBandAng.clear();
+	Bmtf_phCode.clear();
+	Bmtf_phTs2Tag.clear();
+
+	Bmtf_thBx.clear();
+	Bmtf_thWh.clear();
+	Bmtf_thSe.clear();
+  	Bmtf_thSt.clear();
+	Bmtf_thTheta.clear();
+	Bmtf_thCode.clear();
+
+   RpcDigi_TwinMux_bx.clear();
+   RpcDigi_TwinMux_strip.clear();
+   RpcDigi_TwinMux_region.clear();
+   RpcDigi_TwinMux_ring.clear();
+   RpcDigi_TwinMux_station.clear();
+   RpcDigi_TwinMux_layer.clear();
+   RpcDigi_TwinMux_sector.clear();
+   RpcDigi_TwinMux_subsector.clear();
+   RpcDigi_TwinMux_roll.clear();
+   RpcDigi_TwinMux_trIndex.clear();
+   RpcDigi_TwinMux_det.clear();
+   RpcDigi_TwinMux_subdetId.clear();
+   RpcDigi_TwinMux_rawId.clear();
 
          // Unpacking RPC rec hits
-   Unpacking_Rpc_RecHit_region.clear();
-   Unpacking_Rpc_RecHit_clusterSize.clear();
-   Unpacking_Rpc_RecHit_strip.clear();
-   Unpacking_Rpc_RecHit_bx.clear();
-   Unpacking_Rpc_RecHit_station.clear();
-   Unpacking_Rpc_RecHit_sector.clear();
-   Unpacking_Rpc_RecHit_layer.clear();
-   Unpacking_Rpc_RecHit_subsector.clear();
-   Unpacking_Rpc_RecHit_roll.clear();
-   Unpacking_Rpc_RecHit_ring.clear();
+   RpcRechit_TwinMux_region.clear();
+   RpcRechit_TwinMux_clusterSize.clear();
+   RpcRechit_TwinMux_strip.clear();
+   RpcRechit_TwinMux_bx.clear();
+   RpcRechit_TwinMux_station.clear();
+   RpcRechit_TwinMux_sector.clear();
+   RpcRechit_TwinMux_layer.clear();
+   RpcRechit_TwinMux_subsector.clear();
+   RpcRechit_TwinMux_roll.clear();
+   RpcRechit_TwinMux_ring.clear();
   
   return;
 }
