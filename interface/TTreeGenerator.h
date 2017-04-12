@@ -23,6 +23,7 @@
 #include <FWCore/Framework/interface/ConsumesCollector.h>
 #include "DataFormats/L1TMuon/interface/RegionalMuonCandFwd.h"
 #include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
+#include "DataFormats/L1Trigger/interface/Muon.h"
 
 class DTTTrigBaseSync;
 
@@ -58,7 +59,7 @@ private:
   void fill_twinmuxin_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxIn);
   void fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer> localTriggerTwinMux_Th);
   void fill_muons_variables(edm::Handle<reco::MuonCollection> MuList);
-  void fill_gmt_variables(edm::Handle<L1MuGMTReadoutCollection> gmtrc);
+  void fill_gmt_variables(const edm::Handle<l1t::MuonBxCollection> & gmt);
   void fill_gt_variables(edm::Handle<L1GlobalTriggerReadoutRecord> gtrr, const L1GtTriggerMenu* menu);
   void fill_hlt_variables(const edm::Event& e, edm::Handle<edm::TriggerResults> hltresults);
   void fill_rpc_variables(const edm::Event &e, edm::Handle<RPCRecHitCollection> rpcrechits);
@@ -67,8 +68,6 @@ private:
   void analyzeBMTF(const edm::Event& e);
   void analyzeRPCunpacking(const edm::Event& e);
   void analyzeUnpackingRpcRecHit(const edm::Event& e);
-
-  std::vector<L1MuRegionalCand> getBXCands(const L1MuGMTReadoutRecord* igmtrr, const int DetectorType) const;
 
   TrajectoryStateOnSurface cylExtrapTrkSam(reco::TrackRef track, const float rho) const;
   FreeTrajectoryState freeTrajStateMuon(const reco::TrackRef track) const;
@@ -88,8 +87,8 @@ private:
   edm::EDGetTokenT<L1MuDTChambThContainer> dtTrigTwinMux_ThToken_ ;
   edm::InputTag staMuLabel_;
   edm::EDGetTokenT<reco::MuonCollection> staMuToken_;
-  edm::InputTag gmtLabel_; // legacy
-  edm::EDGetTokenT<L1MuGMTReadoutCollection> gmtToken_; // legacy
+  edm::InputTag gmtLabel_;
+  edm::EDGetTokenT<l1t::MuonBxCollection> gmtToken_;
   edm::InputTag gtLabel_; // legacy
   edm::EDGetTokenT<L1GlobalTriggerReadoutRecord> gtToken_; // legacy
   edm::InputTag rpcRecHitLabel_;
@@ -133,7 +132,7 @@ private:
   int dtltTwinMuxOutSize_;
   int dtltTwinMuxInSize_;
   int dtltTwinMuxThSize_;
-  int gmtSize_;  // legacy
+  int gmtSize_;
   int STAMuSize_;
   int rpcRecHitSize_;
 
@@ -145,8 +144,7 @@ private:
   short idtltTwinMuxIn;
   short idtltTwinMux_th;
   short imuons;
-  short igmtdt; // legacy
-  short igmtcands; // legacy
+  short igmt;
   short igtalgo; // legacy
   short igttt; // legacy
   short ihlt;

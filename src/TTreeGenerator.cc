@@ -30,7 +30,6 @@
 
 #include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambPhContainer.h"
 #include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambThContainer.h"
-#include "DataFormats/L1GlobalMuonTrigger/interface/L1MuGMTReadoutCollection.h"
 
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
 
@@ -131,8 +130,8 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   staMuLabel_      = pset.getParameter<edm::InputTag>("staMuLabel");
   staMuToken_      = consumes<reco::MuonCollection>(edm::InputTag(staMuLabel_));
 
-  gmtLabel_        = pset.getParameter<edm::InputTag>("gmtLabel"); // legacy
-  gmtToken_        = consumes<L1MuGMTReadoutCollection>(edm::InputTag(gmtLabel_)); //legacy
+  gmtLabel_        = pset.getParameter<edm::InputTag>("gmtLabel");
+  gmtToken_        = consumes<l1t::MuonBxCollection>(edm::InputTag(gmtLabel_));
 
   triggerTag_      = pset.getParameter<edm::InputTag>("TriggerTag");
   triggerToken_    = consumes<edm::TriggerResults>(edm::InputTag(triggerTag_));
@@ -150,7 +149,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   dtltTwinMuxOutSize_     = pset.getParameter<int>("dtTrigTwinMuxOutSize");
   dtltTwinMuxInSize_ = pset.getParameter<int>("dtTrigTwinMuxInSize");
   dtltTwinMuxThSize_ = pset.getParameter<int>("dtTrigTwinMuxThSize");
-  gmtSize_         = pset.getParameter<int>("gmtSize");  // legacy
+  gmtSize_         = pset.getParameter<int>("gmtSize");
   STAMuSize_       = pset.getParameter<int>("STAMuSize");
   rpcRecHitSize_   = pset.getParameter<int>("rpcRecHitSize"); 
 
@@ -198,8 +197,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   idtltTwinMuxIn     = 0;
   idtltTwinMux_th  = 0;
   imuons       = 0;
-  igmtdt       = 0; // legacy
-  igmtcands    = 0; // legacy
+  igmt         = 0;
   igtalgo      = 0; // legacy
   igttt        = 0; // legacy
   ihlt         = 0;
@@ -279,8 +277,8 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   edm::Handle<reco::MuonCollection> MuList;
   if(!localDTmuons_) event.getByToken(staMuToken_,MuList);
 
-  edm::Handle<L1MuGMTReadoutCollection> gmtrc;   // legacy
-  if(runOnRaw_ && !localDTmuons_) event.getByToken(gmtToken_,gmtrc); // legacy
+  edm::Handle<l1t::MuonBxCollection> gmt;   // legacy
+  if(!localDTmuons_) event.getByToken(gmtToken_,gmt); // legacy
 
   edm::Handle< L1GlobalTriggerReadoutRecord > gtrc; // legacy
   if(runOnRaw_ && !localDTmuons_) event.getByToken(gtToken_, gtrc); // legacy
@@ -379,7 +377,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   if(!localDTmuons_) fill_muons_variables(MuList);
 
   //GMT
-  if(runOnRaw_ && !localDTmuons_) fill_gmt_variables(gmtrc); // legacy
+  if(!localDTmuons_) fill_gmt_variables(gmt); // legacy
 
   //GT
   if(runOnRaw_ && !localDTmuons_) fill_gt_variables(gtrc,menu); // legacy
@@ -852,44 +850,26 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
   return;
 }
 
-void TTreeGenerator::fill_gmt_variables(edm::Handle<L1MuGMTReadoutCollection> gmtrc) // legacy
+void TTreeGenerator::fill_gmt_variables(const edm::Handle<l1t::MuonBxCollection> & gmt)
 {
-  igmtdt = 0;
-  igmtcands = 0;
-  std::vector<L1MuGMTReadoutRecord> gmt_records = gmtrc->getRecords();
-  for(std::vector<L1MuGMTReadoutRecord>::const_iterator igmtrr=gmt_records.begin(); igmtrr!=gmt_records.end(); igmtrr++) {
-    //loop over the different subdetector cands
-    for(int i=0;i<4;i++){
-      std::vector<L1MuRegionalCand> cands = getBXCands(&(*igmtrr),i);
-      for(std::vector<L1MuRegionalCand>::const_iterator candIt = cands.begin(); candIt!=cands.end(); ++candIt){
-	if(igmtdt >= gmtSize_) break;
-	if(!candIt->empty()){
-	  gmt_bx.push_back((*candIt).bx());
-	  gmt_phi.push_back((*candIt).phiValue());
-	  gmt_eta.push_back((*candIt).etaValue());
-	  gmt_pt.push_back((*candIt).ptValue());
-	  gmt_qual.push_back((*candIt).quality());
-	  gmt_detector.push_back(i);
-	  igmtdt++;
+  igmt = 0;
+
+  for (int ibx = gmt->getFirstBX(); ibx <= gmt->getLastBX(); ++ibx) 
+    {
+      for (auto l1MuIt = gmt->begin(ibx); l1MuIt != gmt->end(ibx); ++l1MuIt)
+	{
+
+	  gmt_bx.push_back(ibx);
+	  gmt_phi.push_back(l1MuIt->phi());
+	  gmt_eta.push_back(l1MuIt->eta());
+	  gmt_pt.push_back(l1MuIt->pt());
+	  gmt_qual.push_back(l1MuIt->hwQual());
+	  gmt_tf_idx.push_back(l1MuIt->tfMuonIndex());
+	  gmt_charge.push_back(l1MuIt->hwChargeValid() ? l1MuIt->charge() : 0);
+	  igmt++;
 	}
-      }
     }
-    std::vector<L1MuGMTExtendedCand> candsOut = igmtrr->getGMTCands();
-    for(std::vector<L1MuGMTExtendedCand>::const_iterator candOutIt  = candsOut.begin(); candOutIt!=candsOut.end(); ++candOutIt){
-      if(igmtcands >= gmtSize_) break;
-      if(!candOutIt->empty()){
-	gmt_cands_fwd.push_back((*candOutIt).isFwd());
-	gmt_cands_isRpc.push_back((*candOutIt).isRPC());
-	gmt_cands_bx.push_back((*candOutIt).bx());
-	gmt_cands_phi.push_back((*candOutIt).phiValue());
-	gmt_cands_eta.push_back((*candOutIt).etaValue());
-	gmt_cands_pt.push_back((*candOutIt).ptValue());
-	gmt_cands_qual.push_back((*candOutIt).quality());
-	gmt_cands_ismatched.push_back((*candOutIt).isMatchedCand());
-	igmtcands++;
-      }
-    }
-  }
+  
   return;
 }
 
@@ -1152,19 +1132,6 @@ void TTreeGenerator::analyzeBMTF(const edm::Event& event)
   
 }
 
-
-
-
-std::vector<L1MuRegionalCand> TTreeGenerator::getBXCands(const L1MuGMTReadoutRecord* igmtrr, const int DetectorType) const
-{
-  if(DetectorType == 0) return igmtrr->getDTBXCands();
-  else if(DetectorType == 1) return igmtrr->getCSCCands();
-  else if(DetectorType == 2) return igmtrr->getBrlRPCCands();
-  else if(DetectorType == 3) return igmtrr->getFwdRPCCands();
-  return igmtrr->getDTBXCands();
-}
-
-
 void TTreeGenerator::beginJob()
 {
   outFile = new TFile(outFile_.c_str(), "RECREATE", "");
@@ -1330,21 +1297,14 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_phi_mb2_mu",&STAMu_phi_mb2);
   tree_->Branch("Mu_pseta_mb2_mu",&STAMu_pseta_mb2);
 
-  //GMT  // legacy
+  //GMT
   tree_->Branch("gmt_bx",&gmt_bx);
   tree_->Branch("gmt_phi",&gmt_phi);
   tree_->Branch("gmt_eta",&gmt_eta);
   tree_->Branch("gmt_pt",&gmt_pt);
+  tree_->Branch("gmt_charge",&gmt_charge);
   tree_->Branch("gmt_qual",&gmt_qual);
-  tree_->Branch("gmt_detector",&gmt_detector);
-  tree_->Branch("gmt_cands_fwd",&gmt_cands_fwd);
-  tree_->Branch("gmt_cands_isRpc",&gmt_cands_isRpc);
-  tree_->Branch("gmt_cands_bx",&gmt_cands_bx);
-  tree_->Branch("gmt_cands_phi",&gmt_cands_phi);
-  tree_->Branch("gmt_cands_eta",&gmt_cands_eta);
-  tree_->Branch("gmt_cands_pt",&gmt_cands_pt);
-  tree_->Branch("gmt_cands_qual",&gmt_cands_qual);
-  tree_->Branch("gmt_cands_ismatched",&gmt_cands_ismatched);
+  tree_->Branch("gmt_tf_idx",&gmt_tf_idx);
 
   //GT  // legacy
   tree_->Branch("gt_algo_bit",&gt_algo_bit);
@@ -1372,8 +1332,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("NdtltTwinMux_th",&idtltTwinMux_th,"NdtltTwinMux_th/S");
   tree_->Branch("NdtltTwinMuxIn",&idtltTwinMuxIn,"NdtltTwinMuxIn/S");
   tree_->Branch("Nmuons",&imuons,"Nmuons/S");
-  tree_->Branch("Ngmt",&igmtdt,"Ngmt/S");
-  tree_->Branch("Ngmtcands",&igmtcands,"Ngmtcands/S");
+  tree_->Branch("Ngmt",&igmt,"Ngmt/S");
   tree_->Branch("Ngtalgo",&igtalgo,"Ngtalgo/S");
   tree_->Branch("Ngttechtrig",&igttt,"Ngttt/S");
   tree_->Branch("Nhlt",&ihlt,"Nhlt/S");
@@ -1594,16 +1553,8 @@ inline void TTreeGenerator::clear_Arrays()
   gmt_eta.clear();
   gmt_pt.clear();
   gmt_qual.clear();
-  gmt_detector.clear();
-
-  gmt_cands_fwd.clear();
-  gmt_cands_isRpc.clear();
-  gmt_cands_bx.clear();
-  gmt_cands_phi.clear();
-  gmt_cands_eta.clear();
-  gmt_cands_pt.clear();
-  gmt_cands_qual.clear();
-  gmt_cands_ismatched.clear();
+  gmt_charge.clear();
+  gmt_tf_idx.clear();
 
   //GT
   gt_algo_bit.clear();
