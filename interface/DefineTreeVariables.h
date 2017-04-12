@@ -170,22 +170,14 @@ std::vector<float> STAMu_z_mb2;
 std::vector<float> STAMu_phi_mb2;
 std::vector<float> STAMu_pseta_mb2;
 
-//GMT // legacy
+//GMT
 std::vector<short> gmt_bx;
 std::vector<float> gmt_phi;
 std::vector<float> gmt_eta;
 std::vector<float> gmt_pt;
 std::vector<short> gmt_qual;
-std::vector<short> gmt_detector;
-
-std::vector<short> gmt_cands_fwd;
-std::vector<short> gmt_cands_isRpc;
-std::vector<short> gmt_cands_bx;
-std::vector<float> gmt_cands_phi;
-std::vector<float> gmt_cands_eta;
-std::vector<float> gmt_cands_pt;
-std::vector<short> gmt_cands_qual;
-std::vector<short> gmt_cands_ismatched;
+std::vector<short> gmt_charge;
+std::vector<int>   gmt_tf_idx;
 
 //GT // legacy
 std::vector<short> gt_algo_bx;
