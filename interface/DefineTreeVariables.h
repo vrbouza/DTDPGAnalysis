@@ -6,10 +6,10 @@
 //event variables
 int runnumber;
 int lumiblock;
-int eventNumber;
+long eventNumber;
 float timestamp;
 int bunchXing;
-int orbitNum;
+long orbitNum;
 
 //primary vertex
 float PV_x;

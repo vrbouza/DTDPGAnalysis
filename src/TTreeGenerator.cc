@@ -742,49 +742,80 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
 {
   imuons = 0;
   for (reco::MuonCollection::const_iterator nmuon = MuList->begin(); nmuon != MuList->end(); ++nmuon){
-    if(!(nmuon->isStandAloneMuon())) continue;
-    if(imuons >= STAMuSize_) break;
-    const reco::TrackRef mutrackref = nmuon->outerTrack();
+
     STAMu_isMuGlobal.push_back(nmuon->isGlobalMuon());
     STAMu_isMuTracker.push_back(nmuon->isTrackerMuon());
     STAMu_numberOfChambers.push_back(nmuon->numberOfChambers());
     STAMu_numberOfMatches.push_back(nmuon->numberOfMatches());
-    STAMu_numberOfHits.push_back(mutrackref->numberOfValidHits());
+
     Mu_px_mu.push_back(nmuon->px());
     Mu_py_mu.push_back(nmuon->py());
     Mu_pz_mu.push_back(nmuon->pz());
     Mu_phi_mu.push_back(nmuon->phi());
     Mu_eta_mu.push_back(nmuon->eta());
-    STAMu_recHitsSize.push_back(mutrackref->recHitsSize());
-    STAMu_normchi2Mu.push_back(mutrackref->chi2()/mutrackref->ndof());
-    STAMu_chargeMu.push_back(mutrackref->charge());
-    STAMu_dxyMu.push_back(mutrackref->dxy(beamspot.position()));
-    STAMu_dzMu.push_back(mutrackref->dz(beamspot.position()));
-    int segmIndex = 0;
-    int segmWord = 0;
-    std::vector<int> segmIndex_container;
-    for (trackingRecHit_iterator recMu = mutrackref->recHitsBegin(); recMu!=mutrackref->recHitsEnd(); recMu++){
-      DetId detid = (*recMu)->geographicalId(); 
-      if(detid.subdetId() != MuonSubdetId::DT) continue;
-      DTChamberId recChamb(detid);
-      const short recWheel   = recChamb.wheel();
-      const short recSector  = recChamb.sector();
-      const short recStation = recChamb.station();
-      //loop over the saved segments and find the position of the rechits
-      //This is the quickest way to do this search: find the sector (highest number of
-      //combinations), loop over the find iterator, and search for wheel and stations
-      std::vector<short>::iterator sectorIt = std::find(segm4D_sector.begin(),segm4D_sector.end(),recSector);
-      while(sectorIt != segm4D_sector.end()){
-	segmIndex = (short) distance(segm4D_sector.begin(),sectorIt);
-	if(recWheel == segm4D_wheel.at(segmIndex) && recStation == segm4D_station.at(segmIndex))
-	  if(find(segmIndex_container.begin(),segmIndex_container.end(),segmIndex) == segmIndex_container.end()){
-	    segmIndex_container.push_back(segmIndex);
-	    segmWord |= (1 << segmIndex);
-	  }
-	sectorIt = std::find(sectorIt+1,segm4D_sector.end(),recSector);
-      }
-    }
-    STAMu_segmIndex.push_back(segmWord);
+
+    if(nmuon->isStandAloneMuon()) {
+
+     if(imuons >= STAMuSize_) break;
+     const reco::TrackRef mutrackref = nmuon->outerTrack();
+
+     STAMu_numberOfHits.push_back(mutrackref->numberOfValidHits());
+
+     STAMu_recHitsSize.push_back(mutrackref->recHitsSize());
+     STAMu_normchi2Mu.push_back(mutrackref->chi2()/mutrackref->ndof());
+     STAMu_chargeMu.push_back(mutrackref->charge());
+     STAMu_dxyMu.push_back(mutrackref->dxy(beamspot.position()));
+     STAMu_dzMu.push_back(mutrackref->dz(beamspot.position()));
+     int segmIndex = 0;
+     int segmWord = 0;
+     std::vector<int> segmIndex_container;
+     for (trackingRecHit_iterator recMu = mutrackref->recHitsBegin(); recMu!=mutrackref->recHitsEnd(); recMu++){
+       DetId detid = (*recMu)->geographicalId(); 
+       if(detid.subdetId() != MuonSubdetId::DT) continue;
+       DTChamberId recChamb(detid);
+       const short recWheel   = recChamb.wheel();
+       const short recSector  = recChamb.sector();
+       const short recStation = recChamb.station();
+       //loop over the saved segments and find the position of the rechits
+       //This is the quickest way to do this search: find the sector (highest number of
+       //combinations), loop over the find iterator, and search for wheel and stations
+       std::vector<short>::iterator sectorIt = std::find(segm4D_sector.begin(),segm4D_sector.end(),recSector);
+       while(sectorIt != segm4D_sector.end()){
+  	segmIndex = (short) distance(segm4D_sector.begin(),sectorIt);
+ 	if(recWheel == segm4D_wheel.at(segmIndex) && recStation == segm4D_station.at(segmIndex))
+ 	  if(find(segmIndex_container.begin(),segmIndex_container.end(),segmIndex) == segmIndex_container.end()){
+ 	    segmIndex_container.push_back(segmIndex);
+ 	    segmWord |= (1 << segmIndex);
+ 	  }
+ 	sectorIt = std::find(sectorIt+1,segm4D_sector.end(),recSector);
+       }
+     }
+     STAMu_segmIndex.push_back(segmWord);
+
+     //extrapolate the muon to the MB2
+     TrajectoryStateOnSurface tsos;
+     tsos = cylExtrapTrkSam(mutrackref,500.);  // track at MB2 radius - extrapolation
+     if (tsos.isValid()){
+       static const float pig = acos(-1.);
+       const double xx = tsos.globalPosition().x();
+       const double yy = tsos.globalPosition().y();
+       const double zz = tsos.globalPosition().z();
+       const double rr       = sqrt(xx*xx + yy*yy);
+       const double cosphi   = xx/rr;
+       const double abspseta = -log(tan(atan(fabs(rr/zz))/2.));
+       STAMu_z_mb2.push_back(zz);
+       if (yy>=0) STAMu_phi_mb2.push_back(acos(cosphi));
+       else       STAMu_phi_mb2.push_back(2*pig-acos(cosphi));
+       if (zz>=0) STAMu_pseta_mb2.push_back(abspseta);
+       else       STAMu_pseta_mb2.push_back(-abspseta);
+     }
+     else{
+       STAMu_z_mb2.push_back(-999.);
+       STAMu_phi_mb2.push_back(-999.);
+       STAMu_pseta_mb2.push_back(-999.);
+     }
+    } // if standalone
+
     if(nmuon->isGlobalMuon() & AnaTrackGlobalMu_) { 
       // This part  gives problems in MWGR16. All the calls glbmutrackref->... give similar error  (different Product ID number)
       // RefCore: A request to resolve a reference to a product of type 'std::vector<reco::Track>' with ProductID '2:533'
@@ -823,32 +854,27 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
     }
     if(nmuon->isCaloCompatibilityValid()) STAMu_caloCompatibility.push_back(nmuon->caloCompatibility());
     else STAMu_caloCompatibility.push_back(-999.);
-    //extrapolate the muon to the MB2
-    TrajectoryStateOnSurface tsos;
-    tsos = cylExtrapTrkSam(mutrackref,500.);  // track at MB2 radius - extrapolation
-    if (tsos.isValid()){
-      static const float pig = acos(-1.);
-      const double xx = tsos.globalPosition().x();
-      const double yy = tsos.globalPosition().y();
-      const double zz = tsos.globalPosition().z();
-      const double rr       = sqrt(xx*xx + yy*yy);
-      const double cosphi   = xx/rr;
-      const double abspseta = -log(tan(atan(fabs(rr/zz))/2.));
-      STAMu_z_mb2.push_back(zz);
-      if (yy>=0) STAMu_phi_mb2.push_back(acos(cosphi));
-      else       STAMu_phi_mb2.push_back(2*pig-acos(cosphi));
-      if (zz>=0) STAMu_pseta_mb2.push_back(abspseta);
-      else       STAMu_pseta_mb2.push_back(-abspseta);
-    }
-    else{
-      STAMu_z_mb2.push_back(-999.);
-      STAMu_phi_mb2.push_back(-999.);
-      STAMu_pseta_mb2.push_back(-999.);
-    }
+
+
+
+
+
+
+
+
+
+
     imuons++;
   }
   return;
 }
+
+
+
+
+
+
+
 
 void TTreeGenerator::fill_gmt_variables(const edm::Handle<l1t::MuonBxCollection> & gmt)
 {

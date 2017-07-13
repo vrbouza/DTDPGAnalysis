@@ -52,12 +52,10 @@ process.source = cms.Source("PoolSource",
 
   fileNames = cms.untracked.vstring
   (
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/000BE88F-ED97-E611-B962-02163E011D7E.root',
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/0092B080-0798-E611-AD7E-02163E01184D.root',
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/00958F3E-FE97-E611-A000-02163E014255.root',
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/00B04838-E597-E611-882E-02163E0120A4.root',
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/00C5C0B0-EE97-E611-A10B-FA163EE76B26.root',
 
+    '/store/express/Run2017B/ExpressPhysics/FEVT/Express-v2/000/298/906/00000/5A13DE66-2567-E711-9229-02163E01A1D9.root',
+    '/store/express/Run2017B/ExpressPhysics/FEVT/Express-v2/000/298/906/00000/5AB0E471-2667-E711-AE4A-02163E019CC6.root',
+    '/store/express/Run2017B/ExpressPhysics/FEVT/Express-v2/000/298/906/00000/5C549D73-2567-E711-9152-02163E019C43.root'
   ),
   secondaryFileNames = cms.untracked.vstring(
   )
@@ -85,7 +83,7 @@ process.DTMuonSelection = cms.EDFilter("DTMuonSelection",
                                  etaMin = cms.double(-1.25),
                                  etaMax = cms.double(1.25),
                                  ptMin = cms.double(0.),#3.),
-                                 tightness = cms.int32(1) # 0 = loose (e.g. unstable collisions, minimum bias, requires a DT segment)
+                                 tightness = cms.int32(0) # 0 = loose (e.g. unstable collisions, minimum bias, requires a DT segment)
                                                           # 1 = medium (e.g. cosmics, requires a stand alone muon)
                                                           # 2 = tight (good collisions, requires a global muon)
 )
