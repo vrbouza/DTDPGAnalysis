@@ -1139,10 +1139,10 @@ void TTreeGenerator::beginJob()
   //Event info
   tree_->Branch("runnumber",&runnumber,"runnumber/I");
   tree_->Branch("lumiblock",&lumiblock,"lumiblock/I");
-  tree_->Branch("eventNumber",&eventNumber,"eventNumber/I");
+  tree_->Branch("eventNumber",&eventNumber,"eventNumber/L");
   tree_->Branch("timestamp",&timestamp,"timestamp/F");
   tree_->Branch("bunchXing",&bunchXing,"bunchXing/I");
-  tree_->Branch("orbitNum",&orbitNum,"orbitNum/I");
+  tree_->Branch("orbitNum",&orbitNum,"orbitNum/L");
 
   //Primary vertex
   tree_->Branch("PV_x",&PV_x,"PV_x/F");
