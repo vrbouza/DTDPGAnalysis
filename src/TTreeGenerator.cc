@@ -1590,22 +1590,22 @@ inline void TTreeGenerator::clear_Arrays()
    Bmtf_wh.clear();
    Bmtf_FineBit.clear();
 
-	Bmtf_phBx.clear();
-	Bmtf_phWh.clear();
-	Bmtf_phSe.clear();
-	Bmtf_phSt.clear();
-	Bmtf_phAng.clear();
-	Bmtf_phBandAng.clear();
-	Bmtf_phCode.clear();
-	Bmtf_phTs2Tag.clear();
-
-	Bmtf_thBx.clear();
-	Bmtf_thWh.clear();
-	Bmtf_thSe.clear();
-  	Bmtf_thSt.clear();
-	Bmtf_thTheta.clear();
-	Bmtf_thCode.clear();
-
+   Bmtf_phBx.clear();
+   Bmtf_phWh.clear();
+   Bmtf_phSe.clear();
+   Bmtf_phSt.clear();
+   Bmtf_phAng.clear();
+   Bmtf_phBandAng.clear();
+   Bmtf_phCode.clear();
+   Bmtf_phTs2Tag.clear();
+   
+   Bmtf_thBx.clear();
+   Bmtf_thWh.clear();
+   Bmtf_thSe.clear();
+   Bmtf_thSt.clear();
+   Bmtf_thTheta.clear();
+   Bmtf_thCode.clear();
+   
    RpcDigi_TwinMux_bx.clear();
    RpcDigi_TwinMux_strip.clear();
    RpcDigi_TwinMux_region.clear();
