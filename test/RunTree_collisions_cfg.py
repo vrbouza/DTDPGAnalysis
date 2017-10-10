@@ -32,7 +32,7 @@ process.load("RecoMuon.TrackingTools.MuonServiceProxy_cff")
 
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")  #DB v2, at least since GR_E_V42
 
-process.GlobalTag.globaltag = '90X_dataRun2_Express_v1'
+process.GlobalTag.globaltag = '92X_dataRun2_Express_v7'
 
 # for the emulator
 process.load("L1TriggerConfig.DTTPGConfigProducers.L1DTTPGConfigFromDB_cff")
@@ -52,11 +52,12 @@ process.source = cms.Source("PoolSource",
 
   fileNames = cms.untracked.vstring
   (
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/000BE88F-ED97-E611-B962-02163E011D7E.root',
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/0092B080-0798-E611-AD7E-02163E01184D.root',
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/00958F3E-FE97-E611-A000-02163E014255.root',
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/00B04838-E597-E611-882E-02163E0120A4.root',
-    '/store/express/Run2016H/ExpressPhysics/FEVT/Express-v2/000/283/820/00000/00C5C0B0-EE97-E611-A10B-FA163EE76B26.root',
+
+    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A00EF856-F497-E711-94A7-02163E0123DD.root',
+    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A01BB300-F197-E711-BB65-02163E01A4F9.root',
+    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A05C9A48-F997-E711-B074-02163E019CA8.root',
+    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A0A56765-F397-E711-B016-02163E01219D.root',
+    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A211F0C6-F097-E711-BB10-02163E019CBC.root',
 
   ),
   secondaryFileNames = cms.untracked.vstring(
