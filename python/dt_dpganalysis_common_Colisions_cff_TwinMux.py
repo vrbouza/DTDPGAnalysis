@@ -86,7 +86,9 @@ from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff i
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v0' ##for CMSSW_8_0_X X>0
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v4' ##for CMSSW_8_0_X X>0
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v7' ##for CMSSW_8_0_X X>0
-GlobalTag.globaltag = '80X_dataRun2_Express_v10' ##for CMSSW_8_0_X X>0
+##GlobalTag.globaltag = '80X_dataRun2_Express_v10' ##for CMSSW_8_0_X X>0
+GlobalTag.globaltag = '92X_dataRun2_Express_v2' ## For Express after 920 May2017 
+
 
 
 ##unpackers  = cms.Sequence(dtunpacker + dttfunpacker)
@@ -102,12 +104,14 @@ from UserCode.DTDPGAnalysis.DTOfflineAnalyzer_cfi import *
 ###DTOfflineAnalyzer.SALabel = 'standAloneMuons'  ## Problems with this collection with 52X data 2012 
 ###DTOfflineAnalyzer.SALabel = 'standAloneSETMuons'
 ##DTOfflineAnalyzer.SALabel = 'standAloneMuons'  ## Comming back on version 8010_patch3 29/05/2016 
-DTOfflineAnalyzer.SALabel = 'standAloneSETMuons'  ## Reverting on version 8010_patch3 15/07/2016 because the contents are different
+##DTOfflineAnalyzer.SALabel = 'standAloneSETMuons'  ## Reverting on version 8010_patch3 15/07/2016 because the contents are different
+DTOfflineAnalyzer.SALabel = 'standAloneMuons'  ## standAloneSETMuons not available in staring up collisions in 2017 
 from UserCode.DTDPGAnalysis.STAOfflineAnalyzer_cfi import *
 ###STAOfflineAnalyzer.SALabel = 'standAloneMuons'  ## Problems with this collection with 52X data 2012 
 ###STAOfflineAnalyzer.SALabel = 'standAloneSETMuons'
 ##STAOfflineAnalyzer.SALabel = 'standAloneMuons'  ## Comming back on version 8010_patch3 29/05/2016 
-STAOfflineAnalyzer.SALabel = 'standAloneSETMuons' ## Reverting on version 8010_patch3 15/07/2016 because the contents are different
+##STAOfflineAnalyzer.SALabel = 'standAloneSETMuons' ## Reverting on version 8010_patch3 15/07/2016 because the contents are different
+DTOfflineAnalyzer.SALabel = 'standAloneMuons'  ## standAloneSETMuons not available in staring up collisions in 2017 
 
 from UserCode.DTDPGAnalysis.DTEffOfflineAnalyzer_cfi import *
 
@@ -127,8 +131,9 @@ dtDigiMonitor.doInTimeOccupancies = True
 from DQM.DTMonitorModule.dtTriggerTask_cfi import *
 ##dtTriggerMonitor.process_dcc = True
 ##dtTriggerMonitor.dcc_label   = 'dttfunpacker'
-dtTriggerMonitor.process_ros = False ## New data has not DDU information
-###process.dtTriggerMonitor.process_tm = True (already set in the "official" configuration, and called process_dcc in versions 80X,i should be fixed in 81X) 
+#########dtTriggerMonitor.process_ros = False #### This variables change the name to rocess_ddu after at least 920_patch1
+dtTriggerMonitor.process_ddu = False ### Substitute to process_ros after, at least, 920_patch1
+###dtTriggerMonitor.process_tm = True (already set in the "official" configuration, and called process_dcc in versions 80X,i should be fixed in 81X) 
 dtTriggerMonitor.process_seg = True
 
 from DQM.DTMonitorModule.dtEfficiencyTask_cfi import *

@@ -6,10 +6,10 @@
 //event variables
 int runnumber;
 int lumiblock;
-int eventNumber;
+long eventNumber;
 float timestamp;
 int bunchXing;
-int orbitNum;
+long orbitNum;
 
 //primary vertex
 float PV_x;
@@ -226,7 +226,7 @@ std::vector<int>   Bmtf_thWh;
 std::vector<int>   Bmtf_thSe;
 std::vector<int>   Bmtf_thSt;
 std::vector<int> Bmtf_thTheta;
-std::vector<int> Bmtf_thCode; 
+std::vector<int> Bmtf_thCode;
 
 std::vector<int> RpcDigi_TwinMux_bx;
 std::vector<int> RpcDigi_TwinMux_strip;
@@ -252,3 +252,4 @@ std::vector<int> RpcRechit_TwinMux_layer;
 std::vector<int> RpcRechit_TwinMux_subsector;
 std::vector<int> RpcRechit_TwinMux_roll;
 std::vector<int> RpcRechit_TwinMux_ring;
+

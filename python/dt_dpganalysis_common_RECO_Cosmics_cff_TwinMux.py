@@ -119,7 +119,9 @@ from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff i
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v7' ##for CMSSW_8_0_X X>0
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v10' ##for CMSSW_8_0_10 After insertion of TOTEM
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v15' 
-GlobalTag.globaltag = '90X_dataRun2_Express_v1'  ## Since CMSSW_8_3_0 (commisioning 2017) 
+##GlobalTag.globaltag = '90X_dataRun2_Express_v1'  ## Since CMSSW_8_3_0 (commisioning 2017) 
+GlobalTag.globaltag = '92X_dataRun2_Express_v2' ## For Express after 920 May2017 
+
 
 
 ##unpackers  = cms.Sequence(dtunpacker + dttfunpacker)
@@ -161,8 +163,9 @@ dtDigiMonitor.doInTimeOccupancies = True
 from DQM.DTMonitorModule.dtTriggerTask_cfi import *
 ##dtTriggerMonitor.process_dcc = True
 ##dtTriggerMonitor.dcc_label   = 'dttfunpacker'
-dtTriggerMonitor.process_ros = False ## New data has not DDU information
-###process.dtTriggerMonitor.process_tm = True (already set in the "official" configuration, and called process_dcc in versions 80X,i tshould be fixed in 81X)
+#########dtTriggerMonitor.process_ros = False #### This variables change the name to rocess_ddu after at least 920_patch1
+dtTriggerMonitor.process_ddu = False ### Substitute to process_ros after, at least, 920_patch1
+###dtTriggerMonitor.process_tm = True (already set in the "official" configuration, and called process_dcc in versions 80X,i tshould be fixed in 81X)
 dtTriggerMonitor.process_seg = True
 
 from DQM.DTMonitorModule.dtEfficiencyTask_cfi import *

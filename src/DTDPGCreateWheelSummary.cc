@@ -1222,7 +1222,7 @@ void DTDPGCreateWheelSummary::endJob(){
    for (int wh=-2;wh<=2;wh++) {
     stringstream wheel; wheel << wh;
     string recoFolder       = myMainFolder + "03-LocalTrigger-TM/Wheel" + wheel.str();
-    string histoNameCorr    = recoFolder + "/TM_CorrFractionPhi_W" + wheel.str();
+    string histoNameCorr    = recoFolder + "/TM_CorrFractionPhiIn_W" + wheel.str();
     string histoNameH       = recoFolder + "/TM_HFractionTheta_W" + wheel.str();
 
     TH2F *HCorr  = (TH2F*) myFile -> Get(histoNameCorr.c_str());
