@@ -58,9 +58,8 @@ from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff i
 ##GlobalTag.globaltag = 'GR_P_V26::All'  ## For prompt data 44X 
 ##GlobalTag.globaltag = 'GR_E_V33A::All'  ## For Express 53X>=538HI 
 ##GlobalTag.globaltag = 'GR_E_V47::All' ## For Express >=741
-GlobalTag.globaltag = 'GR_E_V47' ## With DB V2
-
-
+##GlobalTag.globaltag = 'GR_E_V47' ## With DB V2
+GlobalTag.globaltag = '92X_dataRun2_Express_v2' ## For Express after 920 May2017 
 
 
 unpackers  = cms.Sequence(dtunpacker + dttfunpacker)

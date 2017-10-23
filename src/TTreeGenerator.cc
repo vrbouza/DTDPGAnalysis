@@ -14,8 +14,9 @@
 //         Created:  Mon Jan 11 14:59:51 CET 2010
 // $Id: TTreeGenerator.cc,v 1.33 2012/07/02 16:43:36 guiducci Exp $
 //
-// Modificated M.C Fouz March/2016 for TwinMux and to include tracks extrapolation and times variable
-// Modifications L. Guiducci July 2016 to include TwinMux output data and clean up legacy trigger information
+// Modificated M.C Fouz March/2016: TwinMux and to include tracks extrapolation and times variable
+// Modifications L. Guiducci July 2016: include TwinMux output data and clean up legacy trigger information
+// Modifications by C. Battilana: include stage-2 GMT Collection
 
 // user include files
 #include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
@@ -106,6 +107,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   runOnSimulation_ = pset.getParameter<bool>("runOnSimulation");
   runOnSimulationWithDigis_ = pset.getParameter<bool>("runOnSimulationWithDigis");
 
+
   //get parameters from the configuration file
   //names of the different event collections
   dtDigiLabel_     = pset.getParameter<edm::InputTag>("dtDigiLabel");
@@ -149,7 +151,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   dtltTwinMuxOutSize_     = pset.getParameter<int>("dtTrigTwinMuxOutSize");
   dtltTwinMuxInSize_ = pset.getParameter<int>("dtTrigTwinMuxInSize");
   dtltTwinMuxThSize_ = pset.getParameter<int>("dtTrigTwinMuxThSize");
-  gmtSize_         = pset.getParameter<int>("gmtSize");
+  gmtSize_         = pset.getParameter<int>("gmtSize"); 
   STAMuSize_       = pset.getParameter<int>("STAMuSize");
   rpcRecHitSize_   = pset.getParameter<int>("rpcRecHitSize"); 
 
@@ -164,16 +166,12 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
        
   lumiInputTag_      = pset.getParameter<edm::InputTag>("lumiInputTag");
   lumiProducerToken_ = consumes<LumiDetails, edm::InLumi>(lumiInputTag_);
-
+  
   bmtfPhInputTag_ = consumes<L1MuDTChambPhContainer>(pset.getParameter<edm::InputTag>("bmtfInputPhDigis"));
   bmtfThInputTag_ = consumes<L1MuDTChambThContainer>(pset.getParameter<edm::InputTag>("bmtfInputThDigis"));
   bmtfOutputTag_ = consumes<l1t::RegionalMuonCandBxCollection>(pset.getParameter<edm::InputTag>("bmtfOutputDigis"));
 
    OnlyBarrel_ = pset.getParameter<bool>("OnlyBarrel");
-
-// unpacking Rpc RecHit
-// UnpackingRpcRecHitLabel_  = pset.getParameter<edm::InputTag>("UnpackingRpcRecHitLabel");
-//   UnpackingRpcRecHitToken_  = consumes<RPCRecHitCollection>(edm::InputTag(UnpackingRpcRecHitLabel_));
 
 //***  Moved to begin of function, needed for stablishing the digi collection to be used
 //  runOnRaw_        = pset.getParameter<bool>("runOnRaw");
@@ -181,9 +179,13 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
 //  runOnSimulationWithDigis_ = pset.getParameter<bool>("runOnSimulationWithDigis");
 //  ****
 
-  localDTmuons_    = pset.getUntrackedParameter<bool>("localDTmuons","False");
+  localDTmuons_    = pset.getUntrackedParameter<bool>("localDTmuons",false);
 
-  AnaTrackGlobalMu_= pset.getUntrackedParameter<bool>("AnaTrackGlobalMu","True");  // set to False when problems with tracks of global muons
+  AnaTrackGlobalMu_= pset.getUntrackedParameter<bool>("AnaTrackGlobalMu",true);  // set to false when problems with tracks of global muons
+
+
+  runLegacy_gmt_ = pset.getUntrackedParameter<bool>("runLegacy_gmt",true); // Collection not available in cosmics 2017, at least on september runs
+                                                                           // set to false in cosmics if needed
 
   outFile_         = pset.getParameter<std::string>("outputFile");
 
@@ -210,18 +212,14 @@ void TTreeGenerator::beginLuminosityBlock(edm::LuminosityBlock const& lumiBlock,
 }
 
 
-
 void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& context)
 {
 
    theSync->setES(context);
 
-
-
    edm::ESHandle<DTGeometry> dtGeomH;
    context.get<MuonGeometryRecord>().get(dtGeomH);
    const DTGeometry* dtGeom_ = dtGeomH.product();
-
 
   //retrieve the beamspot info
   if(!localDTmuons_)  
@@ -278,7 +276,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   if(!localDTmuons_) event.getByToken(staMuToken_,MuList);
 
   edm::Handle<l1t::MuonBxCollection> gmt;   // legacy
-  if(!localDTmuons_) event.getByToken(gmtToken_,gmt); // legacy
+  if(!localDTmuons_ && runLegacy_gmt_) event.getByToken(gmtToken_,gmt); // legacy
 
   edm::Handle< L1GlobalTriggerReadoutRecord > gtrc; // legacy
   if(runOnRaw_ && !localDTmuons_) event.getByToken(gtToken_, gtrc); // legacy
@@ -377,7 +375,8 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   if(!localDTmuons_) fill_muons_variables(MuList);
 
   //GMT
-  if(!localDTmuons_) fill_gmt_variables(gmt); // legacy
+  
+  if(!localDTmuons_ && runLegacy_gmt_) fill_gmt_variables(gmt); // legacy
 
   //GT
   if(runOnRaw_ && !localDTmuons_) fill_gt_variables(gtrc,menu); // legacy
@@ -390,9 +389,9 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   
    analyzeBMTF(event);
 
-   analyzeRPCunpacking(event);
+  if(!localDTmuons_)  analyzeRPCunpacking(event);
 
-   analyzeUnpackingRpcRecHit(event);
+  if(!localDTmuons_)  analyzeUnpackingRpcRecHit(event);
   
   tree_->Fill();
 
@@ -742,50 +741,81 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
 {
   imuons = 0;
   for (reco::MuonCollection::const_iterator nmuon = MuList->begin(); nmuon != MuList->end(); ++nmuon){
-    if(!(nmuon->isStandAloneMuon())) continue;
-    if(imuons >= STAMuSize_) break;
-    const reco::TrackRef mutrackref = nmuon->outerTrack();
+
     STAMu_isMuGlobal.push_back(nmuon->isGlobalMuon());
     STAMu_isMuTracker.push_back(nmuon->isTrackerMuon());
     STAMu_numberOfChambers.push_back(nmuon->numberOfChambers());
     STAMu_numberOfMatches.push_back(nmuon->numberOfMatches());
-    STAMu_numberOfHits.push_back(mutrackref->numberOfValidHits());
+
     Mu_px_mu.push_back(nmuon->px());
     Mu_py_mu.push_back(nmuon->py());
     Mu_pz_mu.push_back(nmuon->pz());
     Mu_phi_mu.push_back(nmuon->phi());
     Mu_eta_mu.push_back(nmuon->eta());
-    STAMu_recHitsSize.push_back(mutrackref->recHitsSize());
-    STAMu_normchi2Mu.push_back(mutrackref->chi2()/mutrackref->ndof());
-    STAMu_chargeMu.push_back(mutrackref->charge());
-    STAMu_dxyMu.push_back(mutrackref->dxy(beamspot.position()));
-    STAMu_dzMu.push_back(mutrackref->dz(beamspot.position()));
-    int segmIndex = 0;
-    int segmWord = 0;
-    std::vector<int> segmIndex_container;
-    for (trackingRecHit_iterator recMu = mutrackref->recHitsBegin(); recMu!=mutrackref->recHitsEnd(); recMu++){
-      DetId detid = (*recMu)->geographicalId(); 
-      if(detid.subdetId() != MuonSubdetId::DT) continue;
-      DTChamberId recChamb(detid);
-      const short recWheel   = recChamb.wheel();
-      const short recSector  = recChamb.sector();
-      const short recStation = recChamb.station();
-      //loop over the saved segments and find the position of the rechits
-      //This is the quickest way to do this search: find the sector (highest number of
-      //combinations), loop over the find iterator, and search for wheel and stations
-      std::vector<short>::iterator sectorIt = std::find(segm4D_sector.begin(),segm4D_sector.end(),recSector);
-      while(sectorIt != segm4D_sector.end()){
-	segmIndex = (short) distance(segm4D_sector.begin(),sectorIt);
-	if(recWheel == segm4D_wheel.at(segmIndex) && recStation == segm4D_station.at(segmIndex))
-	  if(find(segmIndex_container.begin(),segmIndex_container.end(),segmIndex) == segmIndex_container.end()){
-	    segmIndex_container.push_back(segmIndex);
-	    segmWord |= (1 << segmIndex);
-	  }
-	sectorIt = std::find(sectorIt+1,segm4D_sector.end(),recSector);
-      }
-    }
-    STAMu_segmIndex.push_back(segmWord);
-    if(nmuon->isGlobalMuon() & AnaTrackGlobalMu_) { 
+
+    if(nmuon->isStandAloneMuon()) {
+
+     if(imuons >= STAMuSize_) break;
+     const reco::TrackRef mutrackref = nmuon->outerTrack();
+
+     STAMu_numberOfHits.push_back(mutrackref->numberOfValidHits());
+
+     STAMu_recHitsSize.push_back(mutrackref->recHitsSize());
+     STAMu_normchi2Mu.push_back(mutrackref->chi2()/mutrackref->ndof());
+     STAMu_chargeMu.push_back(mutrackref->charge());
+     STAMu_dxyMu.push_back(mutrackref->dxy(beamspot.position()));
+     STAMu_dzMu.push_back(mutrackref->dz(beamspot.position()));
+     int segmIndex = 0;
+     int segmWord = 0;
+     std::vector<int> segmIndex_container;
+     for (trackingRecHit_iterator recMu = mutrackref->recHitsBegin(); recMu!=mutrackref->recHitsEnd(); recMu++){
+       DetId detid = (*recMu)->geographicalId();
+       if(detid.subdetId() != MuonSubdetId::DT) continue;
+       DTChamberId recChamb(detid);
+       const short recWheel   = recChamb.wheel();
+       const short recSector  = recChamb.sector();
+       const short recStation = recChamb.station();
+       //loop over the saved segments and find the position of the rechits
+       //This is the quickest way to do this search: find the sector (highest number of
+       //combinations), loop over the find iterator, and search for wheel and stations
+       std::vector<short>::iterator sectorIt = std::find(segm4D_sector.begin(),segm4D_sector.end(),recSector);
+       while(sectorIt != segm4D_sector.end()){
+      segmIndex = (short) distance(segm4D_sector.begin(),sectorIt);
+      if(recWheel == segm4D_wheel.at(segmIndex) && recStation == segm4D_station.at(segmIndex))
+        if(find(segmIndex_container.begin(),segmIndex_container.end(),segmIndex) == segmIndex_container.end()){
+          segmIndex_container.push_back(segmIndex);
+          segmWord |= (1 << segmIndex);
+        }
+      sectorIt = std::find(sectorIt+1,segm4D_sector.end(),recSector);
+       }
+     }
+     STAMu_segmIndex.push_back(segmWord);
+
+     //extrapolate the muon to the MB2
+     TrajectoryStateOnSurface tsos;
+     tsos = cylExtrapTrkSam(mutrackref,500.);  // track at MB2 radius - extrapolation
+     if (tsos.isValid()){
+       static const float pig = acos(-1.);
+       const double xx = tsos.globalPosition().x();
+       const double yy = tsos.globalPosition().y();
+       const double zz = tsos.globalPosition().z();
+       const double rr       = sqrt(xx*xx + yy*yy);
+       const double cosphi   = xx/rr;
+       const double abspseta = -log(tan(atan(fabs(rr/zz))/2.));
+       STAMu_z_mb2.push_back(zz);
+       if (yy>=0) STAMu_phi_mb2.push_back(acos(cosphi));
+       else       STAMu_phi_mb2.push_back(2*pig-acos(cosphi));
+       if (zz>=0) STAMu_pseta_mb2.push_back(abspseta);
+       else       STAMu_pseta_mb2.push_back(-abspseta);
+     }
+     else{
+       STAMu_z_mb2.push_back(-999.);
+       STAMu_phi_mb2.push_back(-999.);
+       STAMu_pseta_mb2.push_back(-999.);
+     }
+    } // if standalone
+
+    if(nmuon->isGlobalMuon() & AnaTrackGlobalMu_) {
       // This part  gives problems in MWGR16. All the calls glbmutrackref->... give similar error  (different Product ID number)
       // RefCore: A request to resolve a reference to a product of type 'std::vector<reco::Track>' with ProductID '2:533'
       // can not be satisfied because the product cannot be found.
@@ -801,10 +831,10 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
       GLBMu_normchi2Mu.push_back(glbmutrackref->chi2()/glbmutrackref->ndof());
       GLBMu_dxyMu.push_back(glbmutrackref->dxy(beamspot.position()));
       GLBMu_dzMu.push_back(glbmutrackref->dz(beamspot.position()));
-      
+
       GLBMu_numberOfPixelHits.push_back(glbmutrackref->hitPattern().numberOfValidPixelHits());
       GLBMu_numberOfTrackerHits.push_back(glbmutrackref->hitPattern().numberOfValidTrackerHits());
-      
+
       GLBMu_tkIsoR03.push_back(nmuon->isolationR03().sumPt);
       GLBMu_ntkIsoR03.push_back(nmuon->isolationR03().nTracks);
       GLBMu_emIsoR03.push_back(nmuon->isolationR03().emEt);
@@ -823,28 +853,7 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
     }
     if(nmuon->isCaloCompatibilityValid()) STAMu_caloCompatibility.push_back(nmuon->caloCompatibility());
     else STAMu_caloCompatibility.push_back(-999.);
-    //extrapolate the muon to the MB2
-    TrajectoryStateOnSurface tsos;
-    tsos = cylExtrapTrkSam(mutrackref,500.);  // track at MB2 radius - extrapolation
-    if (tsos.isValid()){
-      static const float pig = acos(-1.);
-      const double xx = tsos.globalPosition().x();
-      const double yy = tsos.globalPosition().y();
-      const double zz = tsos.globalPosition().z();
-      const double rr       = sqrt(xx*xx + yy*yy);
-      const double cosphi   = xx/rr;
-      const double abspseta = -log(tan(atan(fabs(rr/zz))/2.));
-      STAMu_z_mb2.push_back(zz);
-      if (yy>=0) STAMu_phi_mb2.push_back(acos(cosphi));
-      else       STAMu_phi_mb2.push_back(2*pig-acos(cosphi));
-      if (zz>=0) STAMu_pseta_mb2.push_back(abspseta);
-      else       STAMu_pseta_mb2.push_back(-abspseta);
-    }
-    else{
-      STAMu_z_mb2.push_back(-999.);
-      STAMu_phi_mb2.push_back(-999.);
-      STAMu_pseta_mb2.push_back(-999.);
-    }
+
     imuons++;
   }
   return;
@@ -854,11 +863,10 @@ void TTreeGenerator::fill_gmt_variables(const edm::Handle<l1t::MuonBxCollection>
 {
   igmt = 0;
 
-  for (int ibx = gmt->getFirstBX(); ibx <= gmt->getLastBX(); ++ibx) 
+  for (int ibx = gmt->getFirstBX(); ibx <= gmt->getLastBX(); ++ibx)
     {
       for (auto l1MuIt = gmt->begin(ibx); l1MuIt != gmt->end(ibx); ++l1MuIt)
 	{
-
 	  gmt_bx.push_back(ibx);
 	  gmt_phi.push_back(l1MuIt->phi());
 	  gmt_eta.push_back(l1MuIt->eta());
@@ -869,7 +877,7 @@ void TTreeGenerator::fill_gmt_variables(const edm::Handle<l1t::MuonBxCollection>
 	  igmt++;
 	}
     }
-  
+
   return;
 }
 
@@ -963,6 +971,7 @@ void TTreeGenerator::analyzeUnpackingRpcRecHit(const edm::Event& event)
   event.getByToken(UnpackingRpcRecHitToken_, UnpackingRpcHits);
   RPCRecHitCollection::const_iterator recHit;
   irpcrechits_TwinMux=0;
+   
   for(recHit = UnpackingRpcHits->begin(); recHit != UnpackingRpcHits->end(); recHit++){ 
     int cls = recHit->clusterSize();
     int firststrip = recHit->firstClusterStrip();
@@ -977,7 +986,7 @@ void TTreeGenerator::analyzeUnpackingRpcRecHit(const edm::Event& event)
     int ring = rpcId.ring();
 
 	if(OnlyBarrel_ && region != 0) continue;
-	    
+            
     RpcRechit_TwinMux_region.push_back(region);
     RpcRechit_TwinMux_clusterSize.push_back(cls);
     RpcRechit_TwinMux_strip.push_back(firststrip);
@@ -995,35 +1004,35 @@ void TTreeGenerator::analyzeUnpackingRpcRecHit(const edm::Event& event)
 
 void TTreeGenerator::analyzeRPCunpacking(const edm::Event& event)
 {
-	edm::Handle<MuonDigiCollection<RPCDetId,RPCDigi> > rpc;
-	event.getByToken(rpcToken_, rpc);
-	auto chamber = rpc->begin();
-	auto chend  = rpc->end();
-	irpcdigi_TwinMux=0;
-	for( ; chamber != chend; ++chamber ) {
-	
-		if(OnlyBarrel_ && (*chamber).first.region() != 0) continue;
+  edm::Handle<MuonDigiCollection<RPCDetId,RPCDigi> > rpc;
+  event.getByToken(rpcToken_, rpc);
+  auto chamber = rpc->begin();
+  auto chend  = rpc->end();
 
-   		auto digi = (*chamber).second.first;
-	    auto dend = (*chamber).second.second;
-		for( ; digi != dend; ++digi ) {
-			RpcDigi_TwinMux_bx.push_back(digi->bx());
-			RpcDigi_TwinMux_strip.push_back(digi->strip());
-		}
-		RpcDigi_TwinMux_region.push_back((*chamber).first.region()); 
-		RpcDigi_TwinMux_ring.push_back((*chamber).first.ring());
-		RpcDigi_TwinMux_station.push_back((*chamber).first.station());
-		RpcDigi_TwinMux_layer.push_back((*chamber).first.layer());
-		RpcDigi_TwinMux_sector.push_back((*chamber).first.sector());
-		RpcDigi_TwinMux_subsector.push_back((*chamber).first.subsector()); 
-		RpcDigi_TwinMux_roll.push_back((*chamber).first.roll());
-		RpcDigi_TwinMux_trIndex.push_back((*chamber).first.trIndex());
-		RpcDigi_TwinMux_det.push_back((*chamber).first.det());
-		RpcDigi_TwinMux_subdetId.push_back((*chamber).first.subdetId()); 
-		RpcDigi_TwinMux_rawId.push_back((*chamber).first.rawId()); 
-		irpcdigi_TwinMux++;
-	}  
+  irpcdigi_TwinMux = 0;
 
+  for( ; chamber != chend; ++chamber ) {
+    if(OnlyBarrel_ && (*chamber).first.region() != 0) continue;
+    
+    auto digi = (*chamber).second.first;
+    auto dend = (*chamber).second.second;
+    for( ; digi != dend; ++digi ) {
+      RpcDigi_TwinMux_bx.push_back(digi->bx());
+      RpcDigi_TwinMux_strip.push_back(digi->strip());
+    }
+    RpcDigi_TwinMux_region.push_back((*chamber).first.region());
+    RpcDigi_TwinMux_ring.push_back((*chamber).first.ring());
+    RpcDigi_TwinMux_station.push_back((*chamber).first.station());
+    RpcDigi_TwinMux_layer.push_back((*chamber).first.layer());
+    RpcDigi_TwinMux_sector.push_back((*chamber).first.sector());
+    RpcDigi_TwinMux_subsector.push_back((*chamber).first.subsector());
+    RpcDigi_TwinMux_roll.push_back((*chamber).first.roll());
+    RpcDigi_TwinMux_trIndex.push_back((*chamber).first.trIndex());
+    RpcDigi_TwinMux_det.push_back((*chamber).first.det());
+    RpcDigi_TwinMux_subdetId.push_back((*chamber).first.subdetId());
+    RpcDigi_TwinMux_rawId.push_back((*chamber).first.rawId());
+    irpcdigi_TwinMux++;
+  }  
 }
 
 void TTreeGenerator::analyzeBMTF(const edm::Event& event)
@@ -1034,87 +1043,86 @@ void TTreeGenerator::analyzeBMTF(const edm::Event& event)
   event.getByToken(bmtfOutputTag_,mycoll);
 
   if (mycoll.isValid()) {
-        int firstbx = (*mycoll).getFirstBX();
-        int lastbx  = (*mycoll).getLastBX() + 1;
-        for(int i=firstbx; i<lastbx; i++){
-  				for (auto mu = (*mycoll).begin(i); mu != (*mycoll).end(i); ++mu) {
-		    	  ctr++;
-			      Bmtf_Pt.push_back(mu->hwPt()*0.5);
-			      Bmtf_Eta.push_back(mu->hwEta()*0.010875);
-			      Bmtf_FineBit.push_back(mu->hwHF());
-			      Bmtf_Phi.push_back(mu->hwPhi());
-			      //2*mu->hwPhi()*TMath::Pi()/576;
-			      int phi = 0;
-			      phi = mu->processor()*48 + mu->hwPhi();
-			      phi += 576 - 24;
-			      phi = phi % 576;
-			      Bmtf_GlobalPhi.push_back(phi);
-		    	  Bmtf_qual.push_back(mu->hwQual());
-	    		  Bmtf_ch.push_back(mu->hwSign());
-    			  Bmtf_bx.push_back(i);
-			      Bmtf_processor.push_back(mu->processor());
-			      std::map<int, int>  trAdd;
-	    		  trAdd = mu->trackAddress();
-		    	  int wheel = pow(-1,trAdd[0]) * trAdd[1];
-    			  Bmtf_wh.push_back(wheel);
-			      Bmtf_trAddress.push_back(trAdd[2]);
-    			  Bmtf_trAddress.push_back(trAdd[3]);
-	    		  Bmtf_trAddress.push_back(trAdd[4]);
-			      Bmtf_trAddress.push_back(trAdd[5]);
-    			} // for mu
-		        Bmtf_Size = ctr;
- 	 } // for i
+   int firstbx = (*mycoll).getFirstBX();
+   int lastbx  = (*mycoll).getLastBX() + 1;
+   for(int i=firstbx; i<lastbx; i++){
+    for (auto mu = (*mycoll).begin(i); mu != (*mycoll).end(i); ++mu) {
+        ctr++;
+        Bmtf_Pt.push_back(mu->hwPt()*0.5);
+        Bmtf_Eta.push_back(mu->hwEta()*0.010875);
+        Bmtf_FineBit.push_back(mu->hwHF());
+        Bmtf_Phi.push_back(mu->hwPhi());
+        //2*mu->hwPhi()*TMath::Pi()/576;
+        int phi = 0;
+        phi = mu->processor()*48 + mu->hwPhi();
+        phi += 576 - 24;
+        phi = phi % 576;
+        Bmtf_GlobalPhi.push_back(phi);
+        Bmtf_qual.push_back(mu->hwQual());
+        Bmtf_ch.push_back(mu->hwSign());
+        Bmtf_bx.push_back(i);
+        Bmtf_processor.push_back(mu->processor());
+        std::map<int, int>  trAdd;
+        trAdd = mu->trackAddress();
+        int wheel = pow(-1,trAdd[0]) * trAdd[1];
+        Bmtf_wh.push_back(wheel);
+        Bmtf_trAddress.push_back(trAdd[2]);
+        Bmtf_trAddress.push_back(trAdd[3]);
+        Bmtf_trAddress.push_back(trAdd[4]);
+        Bmtf_trAddress.push_back(trAdd[5]);
+      } // for mu
+      Bmtf_Size = ctr;
+   } // for i
   } //if
-  else 
+  else
       edm::LogInfo("L1Prompt") << "can't find L1MuMBTrackContainer";
-      
 
-  edm::Handle<L1MuDTChambPhContainer> bmtfPhInputs;  
+  edm::Handle<L1MuDTChambPhContainer> bmtfPhInputs;
   event.getByToken(bmtfPhInputTag_, bmtfPhInputs);
-  
-  if(!(bmtfPhInputs.isValid())) std::cout<<"no  ok"<<std::endl;
-  
-   L1MuDTChambPhContainer::Phi_Container const *PhContainer = bmtfPhInputs->getContainer();
 
-   Bmtf_phSize = PhContainer->size();
-   int iphtr=0;
-   for( L1MuDTChambPhContainer::Phi_Container::const_iterator DTPhDigiItr =  PhContainer->begin() ;
+  if(!(bmtfPhInputs.isValid())) std::cout<<"no  ok"<<std::endl;
+
+  L1MuDTChambPhContainer::Phi_Container const *PhContainer = bmtfPhInputs->getContainer();
+
+  Bmtf_phSize = PhContainer->size();
+  int iphtr=0;
+  for( L1MuDTChambPhContainer::Phi_Container::const_iterator DTPhDigiItr =  PhContainer->begin() ;
        DTPhDigiItr != PhContainer->end(); ++DTPhDigiItr ){
-		      Bmtf_phBx.push_back     (  DTPhDigiItr->bxNum() );
-    		  Bmtf_phTs2Tag.push_back     ( DTPhDigiItr->Ts2Tag() );
-		      Bmtf_phWh.push_back     (  DTPhDigiItr->whNum() );
-	    	  Bmtf_phSe.push_back     (  DTPhDigiItr->scNum() );
-	    	  Bmtf_phSt.push_back     (  DTPhDigiItr->stNum() );
-    		  Bmtf_phAng.push_back    (  DTPhDigiItr->phi()   );
-		      Bmtf_phBandAng.push_back(  DTPhDigiItr->phiB()  );
-    		  Bmtf_phCode.push_back   (  DTPhDigiItr->code()  );
-		      iphtr++;
+          Bmtf_phBx.push_back     (  DTPhDigiItr->bxNum() );
+          Bmtf_phTs2Tag.push_back     ( DTPhDigiItr->Ts2Tag() );
+          Bmtf_phWh.push_back     (  DTPhDigiItr->whNum() );
+          Bmtf_phSe.push_back     (  DTPhDigiItr->scNum() );
+          Bmtf_phSt.push_back     (  DTPhDigiItr->stNum() );
+          Bmtf_phAng.push_back    (  DTPhDigiItr->phi()   );
+          Bmtf_phBandAng.push_back(  DTPhDigiItr->phiB()  );
+          Bmtf_phCode.push_back   (  DTPhDigiItr->code()  );
+          iphtr++;
     }
 
 
 
   edm::Handle<L1MuDTChambThContainer > bmtfThInputs;
-  event.getByToken(bmtfThInputTag_, bmtfThInputs); 
-  
-   L1MuDTChambThContainer::The_Container const *ThContainer = bmtfThInputs->getContainer();
-   
-   if(!(bmtfThInputs.isValid())) std::cout<<"no  ok"<<std::endl;
+  event.getByToken(bmtfThInputTag_, bmtfThInputs);
 
-   int ithtr=0;
-   Bmtf_thSize = ThContainer->size();
+  L1MuDTChambThContainer::The_Container const *ThContainer = bmtfThInputs->getContainer();
 
-   for( L1MuDTChambThContainer::The_Container::const_iterator
-	 DTThDigiItr =  ThContainer->begin() ;
+  if(!(bmtfThInputs.isValid())) std::cout<<"no  ok"<<std::endl;
+
+  int ithtr=0;
+  Bmtf_thSize = ThContainer->size();
+
+  for( L1MuDTChambThContainer::The_Container::const_iterator
+       DTThDigiItr =  ThContainer->begin() ;
        DTThDigiItr != ThContainer->end() ;
        ++DTThDigiItr )
-     {
+  {
 
       Bmtf_thBx.push_back( DTThDigiItr->bxNum()  );
       Bmtf_thWh.push_back( DTThDigiItr->whNum() );
       Bmtf_thSe.push_back( DTThDigiItr->scNum() );
       Bmtf_thSt.push_back( DTThDigiItr->stNum() );
 
-      ostringstream  ss1, ss2; 
+      ostringstream  ss1, ss2;
       ss1.clear(); ss2.clear();
       ss1<<"9"; ss2<<"9";
 
@@ -1127,9 +1135,7 @@ void TTreeGenerator::analyzeBMTF(const edm::Event& event)
 
       ithtr++;
 
-    }     
-
-  
+  }
 }
 
 void TTreeGenerator::beginJob()
@@ -1142,10 +1148,10 @@ void TTreeGenerator::beginJob()
   //Event info
   tree_->Branch("runnumber",&runnumber,"runnumber/I");
   tree_->Branch("lumiblock",&lumiblock,"lumiblock/I");
-  tree_->Branch("eventNumber",&eventNumber,"eventNumber/I");
+  tree_->Branch("eventNumber",&eventNumber,"eventNumber/L");
   tree_->Branch("timestamp",&timestamp,"timestamp/F");
   tree_->Branch("bunchXing",&bunchXing,"bunchXing/I");
-  tree_->Branch("orbitNum",&orbitNum,"orbitNum/I");
+  tree_->Branch("orbitNum",&orbitNum,"orbitNum/L");
 
   //Primary vertex
   tree_->Branch("PV_x",&PV_x,"PV_x/F");
@@ -1332,7 +1338,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("NdtltTwinMux_th",&idtltTwinMux_th,"NdtltTwinMux_th/S");
   tree_->Branch("NdtltTwinMuxIn",&idtltTwinMuxIn,"NdtltTwinMuxIn/S");
   tree_->Branch("Nmuons",&imuons,"Nmuons/S");
-  tree_->Branch("Ngmt",&igmt,"Ngmt/S");
+  tree_->Branch("Ngmt",&igmt,"Ngmt/S"); 
   tree_->Branch("Ngtalgo",&igtalgo,"Ngtalgo/S");
   tree_->Branch("Ngttechtrig",&igttt,"Ngttt/S");
   tree_->Branch("Nhlt",&ihlt,"Nhlt/S");
@@ -1351,7 +1357,7 @@ void TTreeGenerator::beginJob()
    tree_->Branch("bmtfwh", &Bmtf_wh);
    tree_->Branch("bmtftrAddress", &Bmtf_trAddress);
    tree_->Branch("bmtfSize", &Bmtf_Size);
-   
+
    tree_->Branch("bmtfPhSize", &Bmtf_phSize);
    tree_->Branch("bmtfPhBx", &Bmtf_phBx);
    tree_->Branch("bmtfPhWh", &Bmtf_phWh);
@@ -1361,7 +1367,7 @@ void TTreeGenerator::beginJob()
    tree_->Branch("bmtfPhBandAng", &Bmtf_phBandAng);
    tree_->Branch("bmtfPhCode", &Bmtf_phCode);
    tree_->Branch("bmtfPhTs2Tag", &Bmtf_phTs2Tag);
-   
+
    tree_->Branch("bmtfThSize", &Bmtf_thSize);
    tree_->Branch("bmtfThBx", &Bmtf_thBx);
    tree_->Branch("bmtfThWh", &Bmtf_thWh);
@@ -1369,7 +1375,6 @@ void TTreeGenerator::beginJob()
    tree_->Branch("bmtfThSt", &Bmtf_thSt);
    tree_->Branch("bmtfThTheta", &Bmtf_thTheta);
    tree_->Branch("bmtfThCode", &Bmtf_thCode);
-  
 
    // Unpacking RPC
    tree_->Branch("NirpcdigiTwinMux", &irpcdigi_TwinMux);
@@ -1386,7 +1391,7 @@ void TTreeGenerator::beginJob()
    tree_->Branch("RpcDigiTwinMuxDet", &RpcDigi_TwinMux_det);
    tree_->Branch("RpcDigiTwinMuxSubdetId", &RpcDigi_TwinMux_subdetId);
    tree_->Branch("RpcDigiTwinMuxRawId", &RpcDigi_TwinMux_rawId);
-
+     
    //Unpacking RPC RecHit
    tree_->Branch("NirpcrechitsTwinMux", &irpcrechits_TwinMux);
    tree_->Branch("RpcRecHitTwinMuxRegion", &RpcRechit_TwinMux_region);
@@ -1578,59 +1583,59 @@ inline void TTreeGenerator::clear_Arrays()
   rpc_ring.clear();
   
         //Bmtf_Size.clear();
-   Bmtf_Pt.clear();
-   Bmtf_Eta.clear();
-   Bmtf_Phi.clear();
-   Bmtf_GlobalPhi.clear();
-   Bmtf_qual.clear();
-   Bmtf_ch.clear();
-   Bmtf_bx.clear();
-   Bmtf_processor.clear();
-   Bmtf_trAddress.clear();
-   Bmtf_wh.clear();
-   Bmtf_FineBit.clear();
+  Bmtf_Pt.clear();
+  Bmtf_Eta.clear();
+  Bmtf_Phi.clear();
+  Bmtf_GlobalPhi.clear();
+  Bmtf_qual.clear();
+  Bmtf_ch.clear();
+  Bmtf_bx.clear();
+  Bmtf_processor.clear();
+  Bmtf_trAddress.clear();
+  Bmtf_wh.clear();
+  Bmtf_FineBit.clear();
 
-   Bmtf_phBx.clear();
-   Bmtf_phWh.clear();
-   Bmtf_phSe.clear();
-   Bmtf_phSt.clear();
-   Bmtf_phAng.clear();
-   Bmtf_phBandAng.clear();
-   Bmtf_phCode.clear();
-   Bmtf_phTs2Tag.clear();
-   
-   Bmtf_thBx.clear();
-   Bmtf_thWh.clear();
-   Bmtf_thSe.clear();
-   Bmtf_thSt.clear();
-   Bmtf_thTheta.clear();
-   Bmtf_thCode.clear();
-   
-   RpcDigi_TwinMux_bx.clear();
-   RpcDigi_TwinMux_strip.clear();
-   RpcDigi_TwinMux_region.clear();
-   RpcDigi_TwinMux_ring.clear();
-   RpcDigi_TwinMux_station.clear();
-   RpcDigi_TwinMux_layer.clear();
-   RpcDigi_TwinMux_sector.clear();
-   RpcDigi_TwinMux_subsector.clear();
-   RpcDigi_TwinMux_roll.clear();
-   RpcDigi_TwinMux_trIndex.clear();
-   RpcDigi_TwinMux_det.clear();
-   RpcDigi_TwinMux_subdetId.clear();
-   RpcDigi_TwinMux_rawId.clear();
+  Bmtf_phBx.clear();
+  Bmtf_phWh.clear();
+  Bmtf_phSe.clear();
+  Bmtf_phSt.clear();
+  Bmtf_phAng.clear();
+  Bmtf_phBandAng.clear();
+  Bmtf_phCode.clear();
+  Bmtf_phTs2Tag.clear();
 
-         // Unpacking RPC rec hits
-   RpcRechit_TwinMux_region.clear();
-   RpcRechit_TwinMux_clusterSize.clear();
-   RpcRechit_TwinMux_strip.clear();
-   RpcRechit_TwinMux_bx.clear();
-   RpcRechit_TwinMux_station.clear();
-   RpcRechit_TwinMux_sector.clear();
-   RpcRechit_TwinMux_layer.clear();
-   RpcRechit_TwinMux_subsector.clear();
-   RpcRechit_TwinMux_roll.clear();
-   RpcRechit_TwinMux_ring.clear();
+  Bmtf_thBx.clear();
+  Bmtf_thWh.clear();
+  Bmtf_thSe.clear();
+  Bmtf_thSt.clear();
+  Bmtf_thTheta.clear();
+  Bmtf_thCode.clear();
+
+  RpcDigi_TwinMux_bx.clear();
+  RpcDigi_TwinMux_strip.clear();
+  RpcDigi_TwinMux_region.clear();
+  RpcDigi_TwinMux_ring.clear();
+  RpcDigi_TwinMux_station.clear();
+  RpcDigi_TwinMux_layer.clear();
+  RpcDigi_TwinMux_sector.clear();
+  RpcDigi_TwinMux_subsector.clear();
+  RpcDigi_TwinMux_roll.clear();
+  RpcDigi_TwinMux_trIndex.clear();
+  RpcDigi_TwinMux_det.clear();
+  RpcDigi_TwinMux_subdetId.clear();
+  RpcDigi_TwinMux_rawId.clear();
+  
+  // Unpacking RPC rec hits
+  RpcRechit_TwinMux_region.clear();
+  RpcRechit_TwinMux_clusterSize.clear();
+  RpcRechit_TwinMux_strip.clear();
+  RpcRechit_TwinMux_bx.clear();
+  RpcRechit_TwinMux_station.clear();
+  RpcRechit_TwinMux_sector.clear();
+  RpcRechit_TwinMux_layer.clear();
+  RpcRechit_TwinMux_subsector.clear();
+  RpcRechit_TwinMux_roll.clear();
+  RpcRechit_TwinMux_ring.clear();
   
   return;
 }

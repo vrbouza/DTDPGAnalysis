@@ -25,6 +25,7 @@
 #include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
 #include "DataFormats/L1Trigger/interface/Muon.h"
 
+
 class DTTTrigBaseSync;
 
 //
@@ -119,6 +120,7 @@ private:
 
   bool localDTmuons_;
   bool AnaTrackGlobalMu_;  // To avoid look to the global tracks (The muon collection: vector<reco::Muon> exit,  but not the global tracks:  vector<reco::Track> )
+  bool runLegacy_gmt_;
   std::string outFile_;
 
   edm::ESHandle<MagneticField> theBField;
@@ -152,7 +154,6 @@ private:
   short irpcdigi_TwinMux;
   short irpcrechits_TwinMux;
   short bmtf_size;
-
 
   reco::BeamSpot beamspot;
 

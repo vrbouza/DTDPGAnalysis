@@ -17,6 +17,11 @@
  *     July 2013.  
  *       To include the plots for the local trigger efficiency
  *
+ *    M.C Fouz. 30 May 2017
+ *       Code changed to accommodate different standAlone collection types.
+ *       The trackingRecHit are in some cases DTRecHit1D but in others cases
+ *       are DTRecSegment4D.The change allows to handle both
+ *       situations transparently to the user (no extra configuation needed)
  *******************************i*****************************************/
 
 
@@ -277,7 +282,7 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
      stringstream hTitleOcc; 
      hNameOcc  << "hDigiXY_"  << Whname[iw] << "_S"  << sect ;
      hTitleOcc << "Digis in "  << Whname[iw] << " Sect" << sect ;
-     createTH2F(hNameOcc.str(),hTitleOcc.str(),"",100, 0.,100.,80,0.,80.); // ** histos hDigiXY_S1, ecc... ********
+     createTH2F(hNameOcc.str(),hTitleOcc.str(),"",100, 0.,100.,80,0.,80.); // ** histos hDigiXY_S1, etc... ********
    }//end if doHits
 
 //   sectors trigger matrix
@@ -301,14 +306,14 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
      stringstream hTitleTrigg; 
      hNameTrigg  << "hTrigBits_"  << Whname[iw] << "_S" << sect << "_MB" << jst ;
      hTitleTrigg << "Highest trigg qual,"  << Whname[iw] << "S" << sect << "/MB" << jst ;
-     createTH1F(hNameTrigg.str(),hTitleTrigg.str(),"",11,-1.,10.); // *** histos: hTrigBits_S1_MB1, ecc... **********
+     createTH1F(hNameTrigg.str(),hTitleTrigg.str(),"",11,-1.,10.); // *** histos: hTrigBits_S1_MB1, etc... **********
      for  ( int iqual = 1; iqual < 7; iqual++ ) { 
        stringstream hNameTriggBX; 
        stringstream hTitleTriggBX; 
        if (iqual == 1 || iqual > 3) {  // book histos for qual=1 (== all uncorrelated trigger), 4=LL, 5=HL, 6=HH
         hNameTriggBX  << "hTrigBX_"  << Whname[iw] << "_S" << sect << "_MB" << jst << "_qual" << iqual ;
         hTitleTriggBX << "Highest qual BXid,"  << Whname[iw] << "S" << sect << "/MB" << jst  << " qual=" << iqual;
-        createTH1F(hNameTriggBX.str(),hTitleTriggBX.str(),"",40,0.,40.); // *** histos: hTrigBX_S1_MB1_qual1, ecc... **********
+        createTH1F(hNameTriggBX.str(),hTitleTriggBX.str(),"",40,0.,40.); // *** histos: hTrigBX_S1_MB1_qual1, etc... **********
        }
      } // next quality flag 
     }//end if doTrig
@@ -324,7 +329,7 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
      stringstream hTitleDigi; 
      hNameDigi << "htime_"  << Whname[iw] << "_S" << sect << "_MB" << jst  ;
      hTitleDigi << "Tbox "  << Whname[iw] << " S" << sect << "/MB" << jst  ;
-     createTH1F(hNameDigi.str(),hTitleDigi.str(),"",100,tmin, tmax); // *** histos: htime_S1_MB1, ecc... **********
+     createTH1F(hNameDigi.str(),hTitleDigi.str(),"",100,tmin, tmax); // *** histos: htime_S1_MB1, etc... **********
     }//end if doHits  
      for (int sl = 1; sl < 4; sl++ ) {  // histograms per SL
 //     time boxes per SL....
@@ -333,13 +338,13 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
        stringstream hTitleDigiSL; 
        hNameDigiSL << "htime_"  << Whname[iw] << "_S" << sect << "_MB" << jst << "_SL" << sl  ;
        hTitleDigiSL << "TBox "  << Whname[iw] << " S" << sect << " MB" << jst << " SL" << sl  ;
-       createTH1F(hNameDigiSL.str(),hTitleDigiSL.str(),"",100,tmin, tmax); // *** histos: htime_S1_MB1_SL1, ecc... **********
+       createTH1F(hNameDigiSL.str(),hTitleDigiSL.str(),"",100,tmin, tmax); // *** histos: htime_S1_MB1_SL1, etc... **********
        for (int il = 1; il < 5; il++ ) {  // histograms per Layer
          stringstream hNameDigiL; 
          stringstream hTitleDigiL; 
          hNameDigiL << "htime_"  << Whname[iw] << "_S" << sect << "_MB" << jst << "_SL" << sl  << "_L" <<il;
          hTitleDigiL << "TBox "  << Whname[iw] << " S" << sect << " MB" << jst << " SL" << sl  << " L" <<il;
-         createTH1F(hNameDigiL.str(),hTitleDigiL.str(),"",100,tmin, tmax); // *** histos: htime_S1_MB1_SL1, ecc... **********
+         createTH1F(hNameDigiL.str(),hTitleDigiL.str(),"",100,tmin, tmax); // *** histos: htime_S1_MB1_SL1, etc... **********
          if(doTBox && doTBoxWheel[iw]) //make single tbox histos cell by cell
          if(doTBoxSector==0 || doTBoxSector== sect)   
          if(doTBoxChamber==0 || doTBoxChamber== jst)
@@ -356,7 +361,7 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
              stringstream hTitleDigiC; 
              hNameDigiC << "htime_"  << Whname[iw] << "_S" << sect << "_MB" << jst << "_SL" << sl  << "_L" <<il <<"_C" << ic;
              hTitleDigiC << "TBox "  << Whname[iw] << " S" << sect << " MB" << jst << " SL" << sl  << " L" <<il <<"_C" << ic;
-             createTH1F(hNameDigiC.str(),hTitleDigiC.str(),"",100,tmin, tmax); // *** histos: htime_S1_MB1_SL1_C1, ecc... **********
+             createTH1F(hNameDigiC.str(),hTitleDigiC.str(),"",100,tmin, tmax); // *** histos: htime_S1_MB1_SL1_C1, etc... **********
              //cout << " Produccing TBox:   " << hNameDigiC.str() <<  endl ; 
            }
          }
@@ -370,7 +375,7 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
        stringstream hTitleTmax; 
        hNameTmax  << "htmax_"  << Whname[iw] << "_S" << sect << "_MB" << jst << "_SL" << sl  ;
        hTitleTmax << "Tmax "  << Whname[iw] << " S" << sect << "/MB" << jst << "/SL" << sl  ;
-       createTH1F(hNameTmax.str(),hTitleTmax.str(),"",100,t1, t2); // *** histos: htmaxYB0_S1_MB1_SL1, ecc... **********
+       createTH1F(hNameTmax.str(),hTitleTmax.str(),"",100,t1, t2); // *** histos: htmaxYB0_S1_MB1_SL1, etc... **********
       }// end if doSegs
      } // next SL
 
@@ -382,7 +387,7 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
      stringstream hTitleRes; 
      hNameRes << "hResX_"  << Whname[iw] << "_S" << sect << "_MB" << jst ;
      hTitleRes << "Hit residuals "  << Whname[iw] << " S" << sect << "/MB" << jst ;
-     createTH1F(hNameRes.str(),hTitleRes.str(),"",100,xmin, xmax); // *** histos: hResX_S1_MB1, ecc... **********
+     createTH1F(hNameRes.str(),hTitleRes.str(),"",100,xmin, xmax); // *** histos: hResX_S1_MB1, etc... **********
 
 //   philocal of rec segments
      float phimin = -50., phimax = 50.;
@@ -390,7 +395,7 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
      stringstream hTitlePhi; 
      hNamePhi  << "hPhi_"  << Whname[iw] << "_S" << sect << "_MB" << jst ;
      hTitlePhi << "Phi local "  << Whname[iw] << " S" << sect << "/MB" << jst ;
-     createTH1F(hNamePhi.str(),hTitlePhi.str(),"",100,phimin, phimax); // *** histos: hPhi_S1_MB1, ecc... **********
+     createTH1F(hNamePhi.str(),hTitlePhi.str(),"",100,phimin, phimax); // *** histos: hPhi_S1_MB1, etc... **********
 
 //   philocal of rec segments HH/HL
      phimin = -90., phimax = 90.;
@@ -398,34 +403,34 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
      stringstream hTitlePhiHL; 
      hNamePhiHL  << "hPhiHL_"  << Whname[iw] << "_S" << sect << "_MB" << jst ;
      hTitlePhiHL << "Phi local "  << Whname[iw] << " S" << sect << "/MB" << jst << "(>6 hits)";
-     createTH1F(hNamePhiHL.str(),hTitlePhiHL.str(),"",90,phimin, phimax); // *** histos: hPhiHL_S1_MB1, ecc... **********
+     createTH1F(hNamePhiHL.str(),hTitlePhiHL.str(),"",90,phimin, phimax); // *** histos: hPhiHL_S1_MB1, etc... **********
 //   localposition of phi rec segments HH/HL
      float xposmin = -150., xposmax = 150.;
      stringstream hNamePosHL; 
      stringstream hTitlePosHL; 
      hNamePosHL  << "hTrg_effdenum_"  << Whname[iw] << "_S" << sect << "_MB" << jst ;
      hTitlePosHL << "Phi local Position "  << Whname[iw] << " S" << sect << "/MB" << jst << "(>6 hits)";
-     createTH1F(hNamePosHL.str(),hTitlePosHL.str(),"",50,xposmin, xposmax); // *** histos: hTrg_effdenum_S1_MB1, ecc... **********
+     createTH1F(hNamePosHL.str(),hTitlePosHL.str(),"",50,xposmin, xposmax); // *** histos: hTrg_effdenum_S1_MB1, etc... **********
   
 //   localposition of HH/HL Triggers for phi rec segments HH/HL
      stringstream hNamePosTrigHL; 
      stringstream hTitlePosTrigHL; 
      hNamePosTrigHL  << "hTrg_effnum_"  << Whname[iw] << "_S" << sect << "_MB" << jst ;
      hTitlePosTrigHL << "Phi local Position "  << Whname[iw] << " S" << sect << "/MB" << jst << "(>6 hits & HH/HL trig)";
-     createTH1F(hNamePosTrigHL.str(),hTitlePosTrigHL.str(),"",50,xposmin, xposmax); // *** histos: hTrg_effnum_S1_MB1, ecc... **********
+     createTH1F(hNamePosTrigHL.str(),hTitlePosTrigHL.str(),"",50,xposmin, xposmax); // *** histos: hTrg_effnum_S1_MB1, etc... **********
 //    hits in track segments
      stringstream hNameHits; 
      stringstream hTitleHits; 
      hNameHits  << "hNhits_"  << Whname[iw] << "_S" << sect << "_MB" << jst ;
      hTitleHits << "Nr.hits in segment, "  << Whname[iw] << " S" << sect << "/MB" << jst ;
-     createTH1F(hNameHits.str(),hTitleHits.str(),"",15,0, 15); // *** histos: hNhits_S1_MB1, ecc... **********
+     createTH1F(hNameHits.str(),hTitleHits.str(),"",15,0, 15); // *** histos: hNhits_S1_MB1, etc... **********
 
 //    time in track segments
      stringstream hNameTime;
      stringstream hTitleTime;
      hNameTime  << "hTimeSeg_"  << Whname[iw] << "_S" << sect << "_MB" << jst ;
      hTitleTime << "Time of segment, "  << Whname[iw] << " S" << sect << "/MB" << jst ;
-     createTH1F(hNameTime.str(),hTitleTime.str(),"",200,-200, 200); // *** histos: hTimeSeg_W1_S1_MB1, ecc... **********
+     createTH1F(hNameTime.str(),hTitleTime.str(),"",200,-200, 200); // *** histos: hTimeSeg_W1_S1_MB1, etc... **********
 
      if(doTrig)
      {
@@ -485,7 +490,7 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
    stringstream hTitleNsegm; 
    hNameNsegm << "hNsegs_"  << Whname[iw] << "_S" << sect  ;
    hTitleNsegm << "Segments in "  << Whname[iw] << " sect " << sect  ;
-   createTH1F(hNameNsegm.str(),hTitleNsegm.str(),"",10, 0, 10); // *** histos: hNsegs_S1 ecc... **********
+   createTH1F(hNameNsegm.str(),hTitleNsegm.str(),"",10, 0, 10); // *** histos: hNsegs_S1 etc... **********
   }// end if doSegs
 
 // associated hits to global track per sector
@@ -495,7 +500,7 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
    stringstream hTitleNassH; 
    hNameNassH<< "hNhass_"  << Whname[iw] << "_S" << sect  ;
    hTitleNassH<< "Associated hits in "  << Whname[iw] << " sect." << sect  ;
-   createTH1F(hNameNassH.str(),hTitleNassH.str(),"",50, 0, 50); // *** histos: hNhass_S1 ecc... **********
+   createTH1F(hNameNassH.str(),hTitleNassH.str(),"",50, 0, 50); // *** histos: hNhass_S1 etc... **********
   }// end if doSegs
  
   } // next sector ============================
@@ -587,7 +592,7 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
      stringstream hNamePhihit;
      hNamePhihit << "hPhiHit_" << Whname[iw] << "_MB" << jst ;
      hTitlePhihit << "Phi of ass.hit," << Whname[iw] << " MB" << jst ;
-     createTH1F(hNamePhihit.str(),hTitlePhihit.str(),"",180,-180., 180.); // *** histos: hPhiHit_MB1 ecc... **********
+     createTH1F(hNamePhihit.str(),hTitlePhihit.str(),"",180,-180., 180.); // *** histos: hPhiHit_MB1 etc... **********
     }//end if doSA
     if(doSegs)
     {
@@ -595,12 +600,12 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
      stringstream hTitlePhiGlob;
      hNamePhiGlob << "hPhiGlob_" << Whname[iw] << "_MB" << jst;
      hTitlePhiGlob << "Phi-Trigger eff," << Whname[iw] << " MB" << jst;
-     createTH1F(hNamePhiGlob.str(),hTitlePhiGlob.str(),"",180,-180., 180.); // *** histos: hPhiGlob_MB1 ecc... **********
+     createTH1F(hNamePhiGlob.str(),hTitlePhiGlob.str(),"",180,-180., 180.); // *** histos: hPhiGlob_MB1 etc... **********
      stringstream hNamePhiTrigg;
      stringstream hTitlePhiTrigg;
      hNamePhiTrigg << "hPhiTrigg_" << Whname[iw] << "_MB" << jst;
      hTitlePhiTrigg << "Phi-Trigger eff," << Whname[iw] << " MB"  << jst;
-     createTH1F(hNamePhiTrigg.str(),hTitlePhiTrigg.str(),"",180,-180., 180.); // *** histos: hPhiTrigg_MB1 ecc... **********
+     createTH1F(hNamePhiTrigg.str(),hTitlePhiTrigg.str(),"",180,-180., 180.); // *** histos: hPhiTrigg_MB1 etc... **********
     }//end if doSegs
   } // nest station
  }
@@ -820,7 +825,7 @@ void DTOfflineAnalyzer::analyzeDTHits(const Event & event,
 //    occupancy scatter plot -----------------------------------
       stringstream hTitleDigi; 
       hTitleDigi  << "hDigiXY_"  << Whname[iw] << "_S"  << se ;
-      histo2d(hTitleDigi.str())->Fill( ix,iy ); // *** histos: hDigiXY_S1, ecc... **********
+      histo2d(hTitleDigi.str())->Fill( ix,iy ); // *** histos: hDigiXY_S1, etc... **********
 
 
 // the ttrigg used for this channel
@@ -832,12 +837,12 @@ void DTOfflineAnalyzer::analyzeDTHits(const Event & event,
 //   if ( wireId.wheel() == 0 ) {  // YB0 =========================
         stringstream hTitle, hTitleSL, hTitleL, hTitleC; 
         hTitle << "htime_"  << Whname[iw] << "_S" << wireId.sector() << "_MB" << wireId.station() ;
-        histo(hTitle.str())->Fill( TDCtime ); // *** histos: htime_1_MB1, ecc... **********
+        histo(hTitle.str())->Fill( TDCtime ); // *** histos: htime_1_MB1, etc... **********
         hTitleSL << "htime_"  << Whname[iw] << "_S" << wireId.sector() << "_MB" << wireId.station() << "_SL"<< wireId.superlayer() ;
-        histo(hTitleSL.str())->Fill( TDCtime ); // *** histos: htime_S1_MB1_SL1, ecc... **********		
+        histo(hTitleSL.str())->Fill( TDCtime ); // *** histos: htime_S1_MB1_SL1, etc... **********		
         hTitleL << "htime_"  << Whname[iw] << "_S" << wireId.sector() << "_MB" << wireId.station() << "_SL"<< wireId.superlayer() 
                               << "_L"<< wireId.layer() ;
-        histo(hTitleL.str())->Fill( TDCtime ); // *** histos: htime_S1_MB1_SL1_L1, ecc... **********		
+        histo(hTitleL.str())->Fill( TDCtime ); // *** histos: htime_S1_MB1_SL1_L1, etc... **********		
         if(doTBox && doTBoxWheel[iw]) 
         if(doTBoxSector==0 || doTBoxSector== wireId.sector())    
         if(doTBoxChamber==0 || doTBoxChamber== wireId.station() )
@@ -846,7 +851,7 @@ void DTOfflineAnalyzer::analyzeDTHits(const Event & event,
         {
           hTitleC << "htime_"  << Whname[iw] << "_S" << wireId.sector() << "_MB" << wireId.station() << "_SL"<< wireId.superlayer() 
                                 << "_L"<< wireId.layer() << "_C"<< wireId.wire() ;
-          histo(hTitleC.str())->Fill( TDCtime ); // *** histos: htime_S1_MB1_SL1_L1_C1, ecc... **********		
+          histo(hTitleC.str())->Fill( TDCtime ); // *** histos: htime_S1_MB1_SL1_L1_C1, etc... **********		
           //cout << " Filling TBox:    " << hTitleC.str() <<  endl ; 
         }
 //    } // endif YB0 ==============================================
@@ -1070,7 +1075,7 @@ void DTOfflineAnalyzer::analyzeDTSegments(const Event & event,
            double TimeSeg= phiSeg->t0();
            stringstream hTitle;
            hTitle << "hTimeSeg_"  << Whname[iw] << "_S"  << iisect << "_MB" << ist ;
-           histo(hTitle.str())->Fill( TimeSeg ); // hTimeseg_W1_S1_MB1, ....ecc
+           histo(hTitle.str())->Fill( TimeSeg ); // hTimeseg_W1_S1_MB1, ....etc
         } // End Time (T0) Segment
            
         phiHits = phiSeg->specificRecHits();
@@ -1079,7 +1084,7 @@ void DTOfflineAnalyzer::analyzeDTSegments(const Event & event,
         if (phiHits.size()>=6)      { // Nhits > 6
         stringstream hTitlePhi;
         hTitlePhi << "hPhi_"  << Whname[iw] << "_S" << iisect << "_MB" << ist;
-        histo(hTitlePhi.str())->Fill( localPhideg ); // *** histos: hPhi_W1_S1_MB1, ecc... **********
+        histo(hTitlePhi.str())->Fill( localPhideg ); // *** histos: hPhi_W1_S1_MB1, etc... **********
 
         float  phiLocal= 57.296*atan((*seg).localDirection().x()/(*seg).localDirection().z());
         if (phiHits.size()>6)
@@ -1156,7 +1161,7 @@ void DTOfflineAnalyzer::analyzeDTSegments(const Event & event,
               hTitlePhiGlob << "hPhiGlob_" << Whname[iw] << "_MB"  << ist;
               stringstream hTitlePhiTrigg;
               hTitlePhiTrigg << "hPhiTrigg_"<< Whname[iw] << "_MB"  << ist;
-              histo(hTitlePhiGlob.str())->Fill( phiglobal*radtodeg  ); // *** histos: hPhiGlob_MB1, ecc... **********
+              histo(hTitlePhiGlob.str())->Fill( phiglobal*radtodeg  ); // *** histos: hPhiGlob_MB1, etc... **********
               if( qual[iw][ist-1][iisect-1] > 4) histo(hTitlePhiTrigg.str())->Fill( phiglobal*radtodeg  ); // *** hPhiTrigg_MB1, ...
 	      }
 	    }
@@ -1200,7 +1205,7 @@ void DTOfflineAnalyzer::analyzeDTSegments(const Event & event,
 // ============== histograms of residuals ======================
   	         stringstream hTitle;
                  hTitle << "hResX_"  << Whname[iw] << "_S"  << isect << "_MB" << ist ;
-                 histo(hTitle.str())->Fill( xhit-xextr); // *** histos: hResX_S1_MB1, ecc... **********		    
+                 histo(hTitle.str())->Fill( xhit-xextr); // *** histos: hResX_S1_MB1, etc... **********		    
 // ==============================================================
 	       }  // endif hitlayer == layer 
              } // end loop on hits
@@ -1323,7 +1328,7 @@ void DTOfflineAnalyzer::analyzeDTSegments(const Event & event,
 // ==== fill  hit multiplicity histos per sector ===============
       stringstream hTitle;
       hTitle << "hNhits_"  << Whname[iw] << "_S"  << isect << "_MB" << ist ;
-      histo(hTitle.str())->Fill( NtkHit ); // hNhits_S1_MB1, ....ecc
+      histo(hTitle.str())->Fill( NtkHit ); // hNhits_S1_MB1, ....etc
 	  
       if (phiSeg && zedSeg) nSegSect[iw][isect-1]++;
 
@@ -1358,7 +1363,7 @@ void DTOfflineAnalyzer::analyzeDTSegments(const Event & event,
     for (int sec=1; sec<=12; ++sec) { // section 1 to 12
          stringstream hTitle;
           hTitle << "hNsegs_"  << Whname[iw] << "_S" << sec;
-         if( nSegSect[sec-1] > 0 )  histo(hTitle.str())->Fill( nSegSect[iw][sec-1]); // hNsegs_Sect1, ....ecc
+         if( nSegSect[sec-1] > 0 )  histo(hTitle.str())->Fill( nSegSect[iw][sec-1]); // hNsegs_Sect1, ....etc
     }
    }
   }
@@ -1447,41 +1452,80 @@ void DTOfflineAnalyzer::analyzeSATrack(const Event & event,
      if (theDetector.det() == 2 && theDetector.subdetId() == 1) // MUON && DT 
      {
       NHass++;
-      DTWireId wireId ;
+      //DTWireId wireId ; 
+      std::vector<DTWireId> wireIdList;
       GlobalPoint gpos=geomDet->toGlobal((*recHit)->localPosition()); // Moved here because RPC hits gives problems 
+      //===============================================================================
+      // Code changed to accomodate different standAlone collection types. Some of them
+      // are done from DTRecHit1D others statring from DTRecSegment4D.The change allows
+      // for accomodating both situations transparently to the user
+      // M.C Fouz. 30 May 2017
+      //===============================================================================
+      //===============================================================================
+      // For collections including DTRecHit1D information as trackingRecHit 
+      //===============================================================================
       if ( const DTRecHit1D* dthit = dynamic_cast< const DTRecHit1D*> ((*recHit)->clone()) ) {
-       wireId = dthit ->wireId();
+       //wireId = dthit ->wireId();
+       wireIdList.push_back(dthit ->wireId());
      }
-      if (NHass == 1 || sect==0) sect = wireId.sector(); // SomeTimes problems with hits, to recover if first is bad 
-      if (NHass == 1 || iw==-1) iw = 2+wireId.wheel(); // SomeTimes problems with hits, to recover if first is bad 
-      if (debug)  cout<< wireId << " r: "<< gpos.perp() <<" x,y,z: "<< gpos.x() << " " << gpos.y() << " " << gpos.z() << " " << gpos.phi() << endl;
-      histo2d("hHitsPosXYSA")->Fill(gpos.x(),gpos.y());
-      histo2d("hHitsPosXYSA_1")->Fill(gpos.x(),gpos.y());
-      histo2d("hHitsPosXYSA_2")->Fill(gpos.x(),gpos.y());
-      histo2d("hHitsPosXYSA_3")->Fill(gpos.x(),gpos.y());
-      histo2d("hHitsPosXYSA_4")->Fill(gpos.x(),gpos.y());
-      histo2d("hHitsPosXZSA")->Fill(gpos.z(),gpos.x());
-      histo2d("hHitsPosYZSA")->Fill(gpos.z(),gpos.y());
-      if(2+wireId.wheel()>-1) // Protection against problems apearing in HI 2015, some hits assigned to wire -3!!!
-      if(doWheel[2+wireId.wheel()])
-      {
-         stringstream htit1, htit2, htit3, htit4, htit5, htit6, htit7;
-         htit1 << "hHitsPosXYSA_"  << Whname[iw] ; histo2d(htit1.str())->Fill(gpos.x(),gpos.y());
-         htit2 << "hHitsPosXYSA_1_"<< Whname[iw] ; histo2d(htit2.str())->Fill(gpos.x(),gpos.y());
-         htit3 << "hHitsPosXYSA_2_"<< Whname[iw] ; histo2d(htit3.str())->Fill(gpos.x(),gpos.y());
-         htit4 << "hHitsPosXYSA_3_"<< Whname[iw] ; histo2d(htit4.str())->Fill(gpos.x(),gpos.y());
-         htit5 << "hHitsPosXYSA_4_"<< Whname[iw] ; histo2d(htit5.str())->Fill(gpos.x(),gpos.y());
-         htit6 << "hHitsPosXZSA_"  << Whname[iw] ; histo2d(htit6.str())->Fill(gpos.z(),gpos.x());
-         htit7 << "hHitsPosYZSA_"  << Whname[iw] ; histo2d(htit7.str())->Fill(gpos.z(),gpos.y());
-      }
-      float radtodeg = 57.296 ;
-      float phi =  gpos.phi();
-      stringstream hTitlePhihit;
-      if(2+wireId.wheel()>-1) // Protection against problems apearing in HI 2015, some hits assigned to wire -3!!!
-      {
-        hTitlePhihit << "hPhiHit_" << Whname[iw] << "_MB"  << wireId.station() ;
-        if(doWheel[iw])if(wireId.superlayer() != 2) histo(hTitlePhihit.str())->Fill( radtodeg*phi); // hPhiHit_MB1, ....ecc                 
-      }
+      //===============================================================================
+      // For collections including only DTRecSegment4D info as trackingRecHit
+      //===============================================================================
+      if ( const DTRecSegment4D* segment4D = dynamic_cast< const DTRecSegment4D*> ((*recHit)->clone()) ) {
+       if(segment4D->hasPhi())
+       {
+         std::vector<DTRecHit1D> recHitslist = segment4D->phiSegment()->specificRecHits();
+         // Loop on associated phi rec hits
+         for(std::vector<DTRecHit1D>::const_iterator recHitsIt = recHitslist.begin(); recHitsIt!=recHitslist.end(); ++recHitsIt){
+           wireIdList.push_back(recHitsIt->wireId());
+         }
+       }
+       if(segment4D->hasZed())
+       {
+         std::vector<DTRecHit1D> recHitslist = segment4D->zSegment()->specificRecHits();
+         // Loop on associated phi rec hits
+         for(std::vector<DTRecHit1D>::const_iterator recHitsIt = recHitslist.begin(); recHitsIt!=recHitslist.end(); ++recHitsIt){
+           wireIdList.push_back(recHitsIt->wireId());
+         }
+       }
+     }
+
+     //===============================================================================
+     // Loop on wireID (1 entry only if it is a DTRecHit1D)
+     //===============================================================================
+     for(std::vector<DTWireId>::const_iterator wireIt = wireIdList.begin(); wireIt!=wireIdList.end(); ++wireIt){
+        DTWireId wireId = *wireIt;
+        if (NHass == 1 || sect==0) sect = wireId.sector(); // SomeTimes problems with hits, to recover if first is bad
+        if (NHass == 1 || iw==-1) iw = 2+wireId.wheel(); // SomeTimes problems with hits, to recover if first is bad
+        if (debug)  cout<< wireId << " r: "<< gpos.perp() <<" x,y,z: "<< gpos.x() << " " << gpos.y() << " " << gpos.z() << " " << gpos.phi() << endl;
+        histo2d("hHitsPosXYSA")->Fill(gpos.x(),gpos.y());
+        histo2d("hHitsPosXYSA_1")->Fill(gpos.x(),gpos.y());
+        histo2d("hHitsPosXYSA_2")->Fill(gpos.x(),gpos.y());
+        histo2d("hHitsPosXYSA_3")->Fill(gpos.x(),gpos.y());
+        histo2d("hHitsPosXYSA_4")->Fill(gpos.x(),gpos.y());
+        histo2d("hHitsPosXZSA")->Fill(gpos.z(),gpos.x());
+        histo2d("hHitsPosYZSA")->Fill(gpos.z(),gpos.y());
+        if(2+wireId.wheel()>-1) // Protection against problems apearing in HI 2015, some hits assigned to wire -3!!!
+        if(doWheel[2+wireId.wheel()])
+        {
+           stringstream htit1, htit2, htit3, htit4, htit5, htit6, htit7;
+           htit1 << "hHitsPosXYSA_"  << Whname[iw] ; histo2d(htit1.str())->Fill(gpos.x(),gpos.y());
+           htit2 << "hHitsPosXYSA_1_"<< Whname[iw] ; histo2d(htit2.str())->Fill(gpos.x(),gpos.y());
+           htit3 << "hHitsPosXYSA_2_"<< Whname[iw] ; histo2d(htit3.str())->Fill(gpos.x(),gpos.y());
+           htit4 << "hHitsPosXYSA_3_"<< Whname[iw] ; histo2d(htit4.str())->Fill(gpos.x(),gpos.y());
+           htit5 << "hHitsPosXYSA_4_"<< Whname[iw] ; histo2d(htit5.str())->Fill(gpos.x(),gpos.y());
+           htit6 << "hHitsPosXZSA_"  << Whname[iw] ; histo2d(htit6.str())->Fill(gpos.z(),gpos.x());
+           htit7 << "hHitsPosYZSA_"  << Whname[iw] ; histo2d(htit7.str())->Fill(gpos.z(),gpos.y());
+        }
+        float radtodeg = 57.296 ;
+        float phi =  gpos.phi();
+        stringstream hTitlePhihit;
+        if(2+wireId.wheel()>-1) // Protection against problems apearing in HI 2015, some hits assigned to wire -3!!!
+        {
+          hTitlePhihit << "hPhiHit_" << Whname[iw] << "_MB"  << wireId.station() ;
+          if(doWheel[iw])if(wireId.superlayer() != 2) histo(hTitlePhihit.str())->Fill( radtodeg*phi); // hPhiHit_MB1, ....etc
+        }
+      }// END Loop on wireIdList
      }// if Rechit = MUON && DT
     } // next associated rechit --------------------------------
   
@@ -1490,7 +1534,7 @@ void DTOfflineAnalyzer::analyzeSATrack(const Event & event,
     {
      stringstream hTitle;
      hTitle << "hNhass_"  << Whname[iw] << "_S" << sect  ;
-     if(doWheel[iw])histo(hTitle.str())->Fill( NHass); // hNhass_S1_MB1, ....ecc
+     if(doWheel[iw])histo(hTitle.str())->Fill( NHass); // hNhass_S1_MB1, ....etc
 
        double radius = 0;
        double posz = 0;
@@ -1697,13 +1741,13 @@ void DTOfflineAnalyzer::analyzeTrigger(const Event & event,
 //    plot the highest quality phi-trigger
       stringstream hTitleTrigg; 
       hTitleTrigg << "hTrigBits_"  << Whname[iw] << "_S" << SCsect << "_MB" << SCst ; 
-      if(SCsect != 0) histo(hTitleTrigg.str())->Fill( qual[iw][SCst-1][SCsect-1] ); // *** histos: hTrigBits_S1_MB1, ecc... **********
+      if(SCsect != 0) histo(hTitleTrigg.str())->Fill( qual[iw][SCst-1][SCsect-1] ); // *** histos: hTrigBits_S1_MB1, etc... **********
 //    plot the BXid of highest quality
       int iqual = qual[iw][SCst-1][SCsect-1];
       if(iqual < 4) iqual = 1; // flag for all uncorrelated phi trigger
       stringstream hTitleTriggBX; 
       hTitleTriggBX << "hTrigBX_"  << Whname[iw] << "_S"  << SCsect << "_MB" << SCst  << "_qual" << iqual;
-      if(SCsect != 0) histo(hTitleTriggBX.str())->Fill( bxbest[iw][SCst-1][SCsect-1] ); // *** histos: hTrigBX_S1_MB1_qual1, ecc... **********
+      if(SCsect != 0) histo(hTitleTriggBX.str())->Fill( bxbest[iw][SCst-1][SCsect-1] ); // *** histos: hTrigBX_S1_MB1_qual1, etc... **********
 
    }// end doWheel
   } // end loop on chambers ----------------------------------------------

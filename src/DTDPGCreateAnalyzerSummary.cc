@@ -8,6 +8,10 @@
  * Modified M.C Fouz. 2008/04/22 
  *          Updated for version 200 
  *          include the run & sector number on gif files
+ * Modified M.C Fouz. 2017/06/06
+ *          Updated for zooming automatically histo STAhits
+ *          for STA collections having as rechits
+ *          Segments instead of 1DRechits
  */
 
 
@@ -1202,7 +1206,8 @@ void DTDPGCreateAnalyzerSummary::createSummaryWheelPlots() {
            doSTAPhiHits=true;
            hname2 << "heff" << ic;
            heff[ic-1] =(TH1F*) hPhiHisto[ic-1]->Clone(hname2.str().c_str());
-           heff[ic-1]->Add(heff[ic-1],heff[ic-1],0.5/Nevents,0.5/Nevents);
+	   // heff[ic-1]->Add(heff[ic-1],heff[ic-1],0.5/Nevents,0.5/Nevents);
+           heff[ic-1]->Scale(1./Nevents);
            
            float nbmax=heff[ic-1]->GetMaximum();
            if(nbmax>ymax)ymax=nbmax;
@@ -1296,6 +1301,18 @@ void DTDPGCreateAnalyzerSummary::createSummaryWheelPlots() {
       DQM1->cd(is+1);
       DQM1->cd(is+1)->SetLeftMargin(0.20);
       hNassList[is]->SetStats(1);
+     
+      // Depending on the collection we have the DIGIS or
+      // the number of Segments.
+      // Methode that allows make a zoom automatically
+      // depending on the type of collecion
+      int outsidehits=0;
+      for(int inb=7; inb<15; inb++) // if Segments those bits must be empty
+        outsidehits+=hNassList[is]->GetBinContent(inb);
+     
+      if(outsidehits == 0)
+        hNassList[is]->GetXaxis()->SetRangeUser(0.0,7.0);
+
       hNassList[is]->Draw();
      }
     }

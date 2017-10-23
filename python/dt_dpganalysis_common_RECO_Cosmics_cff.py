@@ -86,7 +86,8 @@ from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff i
 ##GlobalTag.globaltag = 'GR_E_V49' ## With DB V2
 
 ##GlobalTag.globaltag = 'GR_H_V58' ## With DB V2 No tiene el tTrig de cosmicos y cuando lo pongo me da problemas
-GlobalTag.globaltag = '80X_dataRun2_Express_v0' ##for CMSSW_8_0_X X>0
+##GlobalTag.globaltag = '80X_dataRun2_Express_v0' ##for CMSSW_8_0_X X>0
+GlobalTag.globaltag = '92X_dataRun2_Express_v2' ## For Express after 920 May2017 
 
 
 unpackers  = cms.Sequence(dtunpacker + dttfunpacker)

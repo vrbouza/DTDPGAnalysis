@@ -132,8 +132,9 @@ dtDigiMonitor.doInTimeOccupancies = True
 from DQM.DTMonitorModule.dtTriggerTask_cfi import *
 ##dtTriggerMonitor.process_dcc = True
 ##dtTriggerMonitor.dcc_label   = 'dttfunpacker'
-dtTriggerMonitor.process_ros = False ## New data has not DDU information
-###process.dtTriggerMonitor.process_tm = True (already set in the "official" configuration, and called process_dcc in versions 80X,i should be fixed in 81X) 
+#########dtTriggerMonitor.process_ros = False #### This variables change the name to rocess_ddu after at least 920_patch1
+dtTriggerMonitor.process_ddu = False ### Substitute to process_ros after, at least, 920_patch1
+###dtTriggerMonitor.process_tm = True (already set in the "official" configuration, and called process_dcc in versions 80X,i should be fixed in 81X) 
 dtTriggerMonitor.process_seg = True
 
 from DQM.DTMonitorModule.dtEfficiencyTask_cfi import *
