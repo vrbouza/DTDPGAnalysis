@@ -59,7 +59,7 @@ private:
   void fill_twinmuxout_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxOut);
   void fill_twinmuxin_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxIn);
   void fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer> localTriggerTwinMux_Th);
-  void fill_muons_variables(edm::Handle<reco::MuonCollection> MuList);
+  void fill_muon_variables(edm::Handle<reco::MuonCollection> MuList);
   void fill_gmt_variables(const edm::Handle<l1t::MuonBxCollection> & gmt);
   void fill_gt_variables(edm::Handle<L1GlobalTriggerReadoutRecord> gtrr, const L1GtTriggerMenu* menu);
   void fill_hlt_variables(const edm::Event& e, edm::Handle<edm::TriggerResults> hltresults);

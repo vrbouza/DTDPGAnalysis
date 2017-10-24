@@ -134,18 +134,23 @@ std::vector<short> ltTwinMux_thStation;
 std::vector<short> ltTwinMux_thHits;
 
 //muon variables
-std::vector<short> STAMu_isMuGlobal;
-std::vector<short> STAMu_isMuTracker;
-std::vector<int>   STAMu_numberOfChambers;
-std::vector<int>   STAMu_numberOfMatches;
-std::vector<int>   STAMu_numberOfHits;
-std::vector<int>   STAMu_segmIndex;
+std::vector<short> Mu_isMuGlobal;
+std::vector<short> Mu_isMuTracker;
+std::vector<short> Mu_isMuStandAlone;
+
+std::vector<int>   Mu_numberOfChambers;
+std::vector<int>   Mu_numberOfMatches;
+std::vector<int>   Mu_numberOfMatchedStations;
 
 std::vector<float> Mu_px_mu;
 std::vector<float> Mu_py_mu;
 std::vector<float> Mu_pz_mu;
 std::vector<float> Mu_phi_mu;
 std::vector<float> Mu_eta_mu;
+
+std::vector<int>   STAMu_numberOfHits;
+std::vector<int>   STAMu_segmIndex;
+
 std::vector<short> STAMu_recHitsSize;
 std::vector<float> STAMu_normchi2Mu;
 std::vector<short> STAMu_chargeMu;
@@ -164,7 +169,19 @@ std::vector<float> GLBMu_ntkIsoR03;
 std::vector<float> GLBMu_emIsoR03;
 std::vector<float> GLBMu_hadIsoR03;
 
+std::vector<float> TRKMu_normchi2Mu;
+std::vector<float> TRKMu_dxyMu;
+std::vector<float> TRKMu_dzMu;
+
+std::vector<int> TRKMu_numberOfPixelHits;
+std::vector<int> TRKMu_numberOfTrackerLayers;
+
+std::vector<int> TRKMu_algo;
+std::vector<int> TRKMu_origAlgo;
+
 std::vector<float> STAMu_caloCompatibility;
+std::vector<float> STAMu_time;
+std::vector<float> STAMu_timeNDof;
 
 std::vector<float> STAMu_z_mb2;
 std::vector<float> STAMu_phi_mb2;
