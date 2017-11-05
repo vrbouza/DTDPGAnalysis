@@ -135,7 +135,7 @@ private:
   int dtltTwinMuxInSize_;
   int dtltTwinMuxThSize_;
   int gmtSize_;
-  int STAMuSize_;
+  int recoMuSize_;
   int rpcRecHitSize_;
 
   //counters
