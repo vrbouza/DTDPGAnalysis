@@ -153,7 +153,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   dtltTwinMuxInSize_ = pset.getParameter<int>("dtTrigTwinMuxInSize");
   dtltTwinMuxThSize_ = pset.getParameter<int>("dtTrigTwinMuxThSize");
   gmtSize_         = pset.getParameter<int>("gmtSize"); 
-  STAMuSize_       = pset.getParameter<int>("STAMuSize");
+  recoMuSize_       = pset.getParameter<int>("recoMuSize");
   rpcRecHitSize_   = pset.getParameter<int>("rpcRecHitSize"); 
 
   PrimaryVertexTag_ = pset.getParameter<edm::InputTag>("PrimaryVertexTag");
@@ -373,7 +373,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   if(runOnRaw_ && hasThetaTwinMux) fill_twinmuxth_variables(localTriggerTwinMux_Th);
 
   //MUONS
-  if(!localDTmuons_) fill_muon_variables(MuList);
+  if(!localDTmuons_) fill_muon_variables(MuList,dtGeom_);
 
   //GMT
   
@@ -738,7 +738,8 @@ void TTreeGenerator::fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer
   return;
 }
 
-void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuList)
+void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuList,
+					 const DTGeometry* dtGeom)
 {
   imuons = 0;
   for (reco::MuonCollection::const_iterator nmuon = MuList->begin(); nmuon != MuList->end(); ++nmuon){
@@ -756,17 +757,17 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuLis
     Mu_pz_mu.push_back(nmuon->pz());
     Mu_phi_mu.push_back(nmuon->phi());
     Mu_eta_mu.push_back(nmuon->eta());
+    Mu_chargeMu.push_back(nmuon->charge());
 
     if(nmuon->isStandAloneMuon()) {
 
-     if(imuons >= STAMuSize_) break;
+     if(imuons >= recoMuSize_) break;
      const reco::TrackRef mutrackref = nmuon->outerTrack();
 
      STAMu_numberOfHits.push_back(mutrackref->numberOfValidHits());
 
      STAMu_recHitsSize.push_back(mutrackref->recHitsSize());
      STAMu_normchi2Mu.push_back(mutrackref->chi2()/mutrackref->ndof());
-     STAMu_chargeMu.push_back(mutrackref->charge());
      STAMu_dxyMu.push_back(mutrackref->dxy(beamspot.position()));
      STAMu_dzMu.push_back(mutrackref->dz(beamspot.position()));
      int segmIndex = 0;
@@ -822,7 +823,6 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuLis
      STAMu_numberOfHits.push_back(-999);
      STAMu_recHitsSize.push_back(-999);
      STAMu_normchi2Mu.push_back(-999.);
-     STAMu_chargeMu.push_back(-999);
      STAMu_dxyMu.push_back(-999.);
      STAMu_dzMu.push_back(-999.);
 
@@ -845,7 +845,7 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuLis
       // AnalyzeTracksFromGlobalMuons_
       // An extra variable is add  to control from python the possibility of skiping this part of the code
       //
-      const reco::TrackRef glbmutrackref = nmuon->innerTrack();
+      const reco::TrackRef glbmutrackref = nmuon->globalTrack();
       GLBMu_normchi2Mu.push_back(glbmutrackref->chi2()/glbmutrackref->ndof());
       GLBMu_dxyMu.push_back(glbmutrackref->dxy(beamspot.position()));
       GLBMu_dzMu.push_back(glbmutrackref->dz(beamspot.position()));
@@ -858,7 +858,7 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuLis
       GLBMu_emIsoR03.push_back(nmuon->isolationR03().emEt);
       GLBMu_hadIsoR03.push_back(nmuon->isolationR03().hadEt);
     }
-    else{
+    else {
       GLBMu_normchi2Mu.push_back(-999.);
       GLBMu_dxyMu.push_back(-999.);
       GLBMu_dzMu.push_back(-999.);
@@ -885,7 +885,7 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuLis
       TRKMu_origAlgo.push_back(innertrackref->originalAlgo());
 
     }
-    else{
+    else {
       TRKMu_normchi2Mu.push_back(-999.);
       TRKMu_dxyMu.push_back(-999.);
       TRKMu_dzMu.push_back(-999.);
@@ -897,6 +897,83 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuLis
       TRKMu_origAlgo.push_back(-999);
     }
 
+    static TVectorF dummyFloat(1); 
+    dummyFloat(0) = -999.;
+    Int_t iMatches = 0;
+
+    TVectorF matchesWh(16);
+    TVectorF matchesSec(16);
+    TVectorF matchesSt(16);
+    
+    TVectorF matchesX(16);
+    TVectorF matchesY(16);
+    
+    TVectorF matchesPhi(16);
+    TVectorF matchesEta(16);
+    
+    TVectorF matchesEdgeX(16);
+    TVectorF matchesEdgeY(16);
+    
+    if ( nmuon->isMatchesValid() ) {
+
+      for ( const auto & match : nmuon->matches() ) {
+
+	if ( iMatches < 16 && match.id.det() == DetId::Muon &&
+	     match.id.subdetId() == MuonSubdetId::DT ) {
+
+	  DTChamberId dtId(match.id.rawId());
+	  
+	  matchesWh(iMatches) = dtId.wheel();
+	  matchesSec(iMatches) = dtId.sector();
+	  matchesSt(iMatches) = dtId.station();
+
+	  matchesX(iMatches) = match.x;
+	  matchesY(iMatches) = match.y;
+
+	  const auto chamb = dtGeom->chamber(static_cast<DTChamberId>(match.id));
+	        
+	  matchesPhi(iMatches) = chamb->toGlobal(LocalPoint(match.x,match.y,0.)).phi();
+	  matchesEta(iMatches) = chamb->toGlobal(LocalPoint(match.x,match.y,0.)).eta();
+
+	  matchesEdgeX(iMatches) = match.edgeX;
+	  matchesEdgeY(iMatches) = match.edgeY;
+
+	  ++iMatches;
+	}
+      }
+
+    }
+
+    Mu_nMatches.push_back(iMatches);
+    if (iMatches > 0) {
+      new ((*Mu_matches_Wh)[imuons])  TVectorF(matchesWh);
+      new ((*Mu_matches_Sec)[imuons]) TVectorF(matchesSec);
+      new ((*Mu_matches_St)[imuons])  TVectorF(matchesSt);
+      
+      new ((*Mu_matches_x)[imuons]) TVectorF(matchesX);
+      new ((*Mu_matches_y)[imuons]) TVectorF(matchesY);
+      
+      new ((*Mu_matches_phi)[imuons]) TVectorF(matchesPhi);
+      new ((*Mu_matches_eta)[imuons]) TVectorF(matchesEta);
+      
+      new ((*Mu_matches_edgeX)[imuons]) TVectorF(matchesEdgeX);
+      new ((*Mu_matches_edgeY)[imuons]) TVectorF(matchesEdgeY);
+    }
+    else {
+      new ((*Mu_matches_Wh)[imuons])  TVectorF(dummyFloat);
+      new ((*Mu_matches_Sec)[imuons]) TVectorF(dummyFloat);
+      new ((*Mu_matches_St)[imuons])  TVectorF(dummyFloat);
+      
+      new ((*Mu_matches_x)[imuons]) TVectorF(dummyFloat);
+      new ((*Mu_matches_y)[imuons]) TVectorF(dummyFloat);
+      
+      new ((*Mu_matches_phi)[imuons]) TVectorF(dummyFloat);
+      new ((*Mu_matches_eta)[imuons]) TVectorF(dummyFloat);
+      
+      new ((*Mu_matches_edgeX)[imuons]) TVectorF(matchesEdgeX);
+      new ((*Mu_matches_edgeY)[imuons]) TVectorF(matchesEdgeY);
+    }
+    
     STAMu_caloCompatibility.push_back(nmuon->isCaloCompatibilityValid() ? 
 				      nmuon->caloCompatibility() : -999.);
 
@@ -1329,6 +1406,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_isMuTracker",&Mu_isMuTracker);
   tree_->Branch("Mu_isMuStandAlone",&Mu_isMuStandAlone);
 
+  tree_->Branch("Mu_nMatches",&Mu_nMatches);
   tree_->Branch("Mu_numberOfChambers_sta",&Mu_numberOfChambers); //CB they're not a STA property
   tree_->Branch("Mu_numberOfMatches_sta",&Mu_numberOfMatches); //CB they're not a STA property
   tree_->Branch("Mu_numberOfMatchedStations",&Mu_numberOfMatchedStations); //CB they're not a STA property
@@ -1343,7 +1421,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_segmentIndex_sta",&STAMu_segmIndex);
   tree_->Branch("Mu_recHitsSize",&STAMu_recHitsSize); // CB this is sta
   tree_->Branch("Mu_normchi2_sta",&STAMu_normchi2Mu); 
-  tree_->Branch("Mu_charge",&STAMu_chargeMu); // CB this is sta and should put inner trk one!
+  tree_->Branch("Mu_charge",&Mu_chargeMu);
   tree_->Branch("Mu_dxy_sta",&STAMu_dxyMu);
   tree_->Branch("Mu_dz_sta",&STAMu_dzMu);
 
@@ -1369,7 +1447,18 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_algo_trk",&TRKMu_algo);
   tree_->Branch("Mu_origAlgo_trk",&TRKMu_origAlgo);
 
+  tree_->Branch("Mu_matches_Wh",&Mu_matches_Wh,2048000,0);
+  tree_->Branch("Mu_matches_Sec",&Mu_matches_Sec,2048000,0);
+  tree_->Branch("Mu_matches_St",&Mu_matches_St,2048000,0);
+  tree_->Branch("Mu_matches_x",&Mu_matches_x,2048000,0);
+  tree_->Branch("Mu_matches_y",&Mu_matches_y,2048000,0);
+  tree_->Branch("Mu_matches_phi",&Mu_matches_phi,2048000,0); 
+  tree_->Branch("Mu_matches_eta",&Mu_matches_eta,2048000,0);
+  tree_->Branch("Mu_matches_edgeX",&Mu_matches_edgeX,2048000,0); 
+  tree_->Branch("Mu_matches_edgeY",&Mu_matches_edgeY,2048000,0); 
+
   tree_->Branch("STAMu_caloCompatibility",&STAMu_caloCompatibility); // CB is this needed? naming?
+
   tree_->Branch("Mu_time_sta",&STAMu_time);
   tree_->Branch("Mu_timeNDof_sta",&STAMu_timeNDof);  
 
@@ -1595,7 +1684,9 @@ inline void TTreeGenerator::clear_Arrays()
   Mu_pz_mu.clear();
   Mu_phi_mu.clear();
   Mu_eta_mu.clear();
+  Mu_chargeMu.clear();
 
+  Mu_nMatches.clear();
   Mu_numberOfChambers.clear();
   Mu_numberOfMatches.clear();
   Mu_numberOfMatchedStations.clear();
@@ -1605,7 +1696,6 @@ inline void TTreeGenerator::clear_Arrays()
 
   STAMu_recHitsSize.clear();
   STAMu_normchi2Mu.clear();
-  STAMu_chargeMu.clear();
   STAMu_dxyMu.clear();
   STAMu_dzMu.clear();
 
@@ -1638,6 +1728,20 @@ inline void TTreeGenerator::clear_Arrays()
   STAMu_z_mb2.clear();
   STAMu_phi_mb2.clear();
   STAMu_pseta_mb2.clear();
+
+  Mu_matches_Wh->Clear(); 
+  Mu_matches_Sec->Clear();    
+  Mu_matches_St->Clear();     
+
+  Mu_matches_x->Clear();      
+  Mu_matches_y->Clear();      
+
+  Mu_matches_phi->Clear();    
+  Mu_matches_eta->Clear();    
+
+  Mu_matches_edgeX->Clear();  
+  Mu_matches_edgeY->Clear();  
+
 
   //GMT
   gmt_bx.clear();
@@ -1773,6 +1877,19 @@ void TTreeGenerator::initialize_Tree_variables()
   segm4D_zHits_Layer  = new TClonesArray("TVectorF",dtsegmentsSize_);
   segm4D_zHits_Time   = new TClonesArray("TVectorF",dtsegmentsSize_);
   segm4D_zHits_TimeCali   = new TClonesArray("TVectorF",dtsegmentsSize_);
+
+  Mu_matches_Wh  = new TClonesArray("TVectorF",recoMuSize_); // CB aggiungi size!
+  Mu_matches_Sec = new TClonesArray("TVectorF",recoMuSize_);
+  Mu_matches_St  = new TClonesArray("TVectorF",recoMuSize_);
+
+  Mu_matches_x  = new TClonesArray("TVectorF",recoMuSize_);
+  Mu_matches_y  = new TClonesArray("TVectorF",recoMuSize_);
+
+  Mu_matches_phi  = new TClonesArray("TVectorF",recoMuSize_);
+  Mu_matches_eta  = new TClonesArray("TVectorF",recoMuSize_);
+
+  Mu_matches_edgeX  = new TClonesArray("TVectorF",recoMuSize_);
+  Mu_matches_edgeY  = new TClonesArray("TVectorF",recoMuSize_);
 
   return;
 }
