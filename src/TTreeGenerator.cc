@@ -139,6 +139,10 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   triggerTag_      = pset.getParameter<edm::InputTag>("TriggerTag");
   triggerToken_    = consumes<edm::TriggerResults>(edm::InputTag(triggerTag_));
 
+  triggerEventTag_   = pset.getParameter<edm::InputTag>("TriggerEventTag");
+  triggerEventToken_ = consumes<trigger::TriggerEvent>(edm::InputTag(triggerEventTag_));
+  trigFilterNames_    = pset.getParameter<std::vector<std::string>>("trigFilterNames");
+
   gtLabel_         = pset.getParameter<edm::InputTag>("gtLabel"); // legacy
   gtToken_         = consumes<L1GlobalTriggerReadoutRecord>(edm::InputTag(gtLabel_)); //legacy
 
@@ -289,6 +293,9 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   edm::Handle<edm::TriggerResults>  hltresults;
   if(!localDTmuons_) event.getByToken(triggerToken_, hltresults); 
 
+  edm::Handle<trigger::TriggerEvent> hltEvent;
+  if(!localDTmuons_) event.getByToken(triggerEventToken_, hltEvent); 
+
   edm::Handle<RPCRecHitCollection> rpcHits;
   if(!localDTmuons_) event.getByToken(rpcRecHitToken_,rpcHits);
 
@@ -373,7 +380,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   if(runOnRaw_ && hasThetaTwinMux) fill_twinmuxth_variables(localTriggerTwinMux_Th);
 
   //MUONS
-  if(!localDTmuons_) fill_muon_variables(MuList,dtGeom_);
+  if(!localDTmuons_) fill_muon_variables(MuList,hltEvent,dtGeom_);
 
   //GMT
   
@@ -738,11 +745,12 @@ void TTreeGenerator::fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer
   return;
 }
 
-void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuList,
+void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muList,
+					 edm::Handle<trigger::TriggerEvent> triggerEvent,
 					 const DTGeometry* dtGeom)
 {
   imuons = 0;
-  for (reco::MuonCollection::const_iterator nmuon = MuList->begin(); nmuon != MuList->end(); ++nmuon){
+  for (reco::MuonCollection::const_iterator nmuon = muList->begin(); nmuon != muList->end(); ++nmuon){
 
     Mu_isMuGlobal.push_back(nmuon->isGlobalMuon()); 
     Mu_isMuTracker.push_back(nmuon->isTrackerMuon());
@@ -982,6 +990,56 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection> MuLis
 
     STAMu_timeNDof.push_back(nmuon->isTimeValid() ? 
 			     nmuon->time().nDof : -999.);
+
+    float iFilter = 0.;
+    TVectorF triggerFiltersDr(trigFilterNames_.size());
+
+    const trigger::size_type nFilters(triggerEvent->sizeFilters());
+
+    for (const auto & trigFilterName : trigFilterNames_)
+      { 
+
+	float minDr = 999.;
+
+	for (trigger::size_type iFilter=0; iFilter!=nFilters; ++iFilter) 
+	  {
+	
+	    std::string filterTag = triggerEvent->filterTag(iFilter).encode();
+      
+	    if (filterTag.find(trigFilterName) != std::string::npos)
+	      {
+
+		trigger::Keys objectKeys = triggerEvent->filterKeys(iFilter);
+		const trigger::TriggerObjectCollection& triggerObjects(triggerEvent->getObjects());
+	    
+		for (trigger::size_type iKey=0; iKey<objectKeys.size(); ++iKey) 
+		  {  
+		    trigger::size_type objKey = objectKeys.at(iKey);
+		    const trigger::TriggerObject& triggerObj(triggerObjects[objKey]);
+		    
+		    float trigObjEta = triggerObj.eta();
+		    float trigObjPhi = triggerObj.phi();      
+		    
+		    float muPhi = nmuon->phi();
+		    float muEta = nmuon->eta();
+		    
+		    float dPhi = acos(cos(muPhi - trigObjPhi));
+		    float dEta = muEta - trigObjEta;
+		    
+		    float dR = std::sqrt(dPhi*dPhi + dEta*dEta);
+		    
+		    if (dR < 0.3 && dR < minDr)
+		      minDr = dR;
+		  }
+	      }
+	  }
+
+	triggerFiltersDr(iFilter) = minDr;
+	iFilter++;
+	
+      }
+	
+    new ((*Mu_hlt_Dr)[imuons])  TVectorF(triggerFiltersDr);
 
     imuons++;
   }
@@ -1272,6 +1330,8 @@ void TTreeGenerator::beginJob()
   outFile = new TFile(outFile_.c_str(), "RECREATE", "");
   outFile->cd();
 
+  outFile->WriteObject(&trigFilterNames_,"triggerFilterNames");
+
   tree_ = new TTree ("DTTree", "CMSSW DT tree");
 
   //Event info
@@ -1455,7 +1515,9 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_matches_phi",&Mu_matches_phi,2048000,0); 
   tree_->Branch("Mu_matches_eta",&Mu_matches_eta,2048000,0);
   tree_->Branch("Mu_matches_edgeX",&Mu_matches_edgeX,2048000,0); 
-  tree_->Branch("Mu_matches_edgeY",&Mu_matches_edgeY,2048000,0); 
+  tree_->Branch("Mu_matches_edgeY",&Mu_matches_edgeY,2048000,0);
+
+  tree_->Branch("Mu_hlt_Dr",&Mu_hlt_Dr,2048000,0); 
 
   tree_->Branch("STAMu_caloCompatibility",&STAMu_caloCompatibility); // CB is this needed? naming?
 
@@ -1740,8 +1802,9 @@ inline void TTreeGenerator::clear_Arrays()
   Mu_matches_eta->Clear();    
 
   Mu_matches_edgeX->Clear();  
-  Mu_matches_edgeY->Clear();  
+  Mu_matches_edgeY->Clear();
 
+  Mu_hlt_Dr->Clear();  
 
   //GMT
   gmt_bx.clear();
@@ -1890,6 +1953,8 @@ void TTreeGenerator::initialize_Tree_variables()
 
   Mu_matches_edgeX  = new TClonesArray("TVectorF",recoMuSize_);
   Mu_matches_edgeY  = new TClonesArray("TVectorF",recoMuSize_);
+
+  Mu_hlt_Dr  = new TClonesArray("TVectorF",recoMuSize_);
 
   return;
 }

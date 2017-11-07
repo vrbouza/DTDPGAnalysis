@@ -194,6 +194,8 @@ TClonesArray *Mu_matches_eta;
 TClonesArray *Mu_matches_edgeX;
 TClonesArray *Mu_matches_edgeY;
 
+TClonesArray *Mu_hlt_Dr;
+
 std::vector<float> STAMu_z_mb2;
 std::vector<float> STAMu_phi_mb2;
 std::vector<float> STAMu_pseta_mb2;
