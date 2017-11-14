@@ -136,6 +136,7 @@ std::vector<short> ltTwinMux_thHits;
 //muon variables
 std::vector<short> Mu_isMuGlobal;
 std::vector<short> Mu_isMuTracker;
+std::vector<short> Mu_isMuTrackerArb;
 std::vector<short> Mu_isMuStandAlone;
 
 std::vector<int>   Mu_nMatches;

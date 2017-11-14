@@ -756,6 +756,9 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
     Mu_isMuTracker.push_back(nmuon->isTrackerMuon());
     Mu_isMuStandAlone.push_back(nmuon->isStandAloneMuon()); 
 
+    bool isTrackerArb = muon::isGoodMuon((*nmuon), muon::TrackerMuonArbitrated);
+    Mu_isMuTrackerArb.push_back(isTrackerArb);
+
     Mu_numberOfChambers.push_back(nmuon->numberOfChambers());
     Mu_numberOfMatches.push_back(nmuon->numberOfMatches());
     Mu_numberOfMatchedStations.push_back(nmuon->numberOfMatchedStations());
@@ -878,7 +881,7 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
       GLBMu_hadIsoR03.push_back(-999.);
     }
 
-    if(muon::isGoodMuon((*nmuon), muon::TrackerMuonArbitrated)) {
+    if(isTrackerArb) {
 
       const reco::TrackRef innertrackref = nmuon->innerTrack();
 
@@ -909,19 +912,19 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
     dummyFloat(0) = -999.;
     Int_t iMatches = 0;
 
-    TVectorF matchesWh(16);
-    TVectorF matchesSec(16);
-    TVectorF matchesSt(16);
+    TVectorF matchesWh(24);
+    TVectorF matchesSec(24);
+    TVectorF matchesSt(24);
     
-    TVectorF matchesX(16);
-    TVectorF matchesY(16);
+    TVectorF matchesX(24);
+    TVectorF matchesY(24);
     
-    TVectorF matchesPhi(16);
-    TVectorF matchesEta(16);
+    TVectorF matchesPhi(24);
+    TVectorF matchesEta(24);
     
-    TVectorF matchesEdgeX(16);
-    TVectorF matchesEdgeY(16);
-    
+    TVectorF matchesEdgeX(24);
+    TVectorF matchesEdgeY(24);
+  
     if ( nmuon->isMatchesValid() ) {
 
       for ( const auto & match : nmuon->matches() ) {
@@ -953,6 +956,7 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
     }
 
     Mu_nMatches.push_back(iMatches);
+
     if (iMatches > 0) {
       new ((*Mu_matches_Wh)[imuons])  TVectorF(matchesWh);
       new ((*Mu_matches_Sec)[imuons]) TVectorF(matchesSec);
@@ -1464,12 +1468,13 @@ void TTreeGenerator::beginJob()
   //muon variables
   tree_->Branch("Mu_isMuGlobal",&Mu_isMuGlobal);
   tree_->Branch("Mu_isMuTracker",&Mu_isMuTracker);
+  tree_->Branch("Mu_isMuTrackerArb",&Mu_isMuTrackerArb);
   tree_->Branch("Mu_isMuStandAlone",&Mu_isMuStandAlone);
 
   tree_->Branch("Mu_nMatches",&Mu_nMatches);
   tree_->Branch("Mu_numberOfChambers_sta",&Mu_numberOfChambers); //CB they're not a STA property
-  tree_->Branch("Mu_numberOfMatches_sta",&Mu_numberOfMatches); //CB they're not a STA property
-  tree_->Branch("Mu_numberOfMatchedStations",&Mu_numberOfMatchedStations); //CB they're not a STA property
+  tree_->Branch("Mu_numberOfMatches_sta",&Mu_numberOfMatches);   //CB they're not a STA property
+  tree_->Branch("Mu_numberOfMatchedStations",&Mu_numberOfMatchedStations);
 
   tree_->Branch("Mu_px",&Mu_px_mu);
   tree_->Branch("Mu_py",&Mu_py_mu);
@@ -1496,7 +1501,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_numberOfTrackerHits_glb",&GLBMu_numberOfTrackerHits);
   tree_->Branch("Mu_tkIsoR03_glb",&GLBMu_tkIsoR03);
   tree_->Branch("Mu_ntkIsoR03_glb",&GLBMu_ntkIsoR03); // CB is this needed?
-  tree_->Branch("Mu_emIsoR03_glb",&GLBMu_emIsoR03); // CB is this needed?
+  tree_->Branch("Mu_emIsoR03_glb",&GLBMu_emIsoR03);   // CB is this needed?
   tree_->Branch("Mu_hadIsoR03_glb",&GLBMu_hadIsoR03); // CB is this needed?
 
   tree_->Branch("Mu_normchi2_trk",&TRKMu_normchi2Mu);
@@ -1739,6 +1744,7 @@ inline void TTreeGenerator::clear_Arrays()
   //muon variables
   Mu_isMuGlobal.clear();
   Mu_isMuTracker.clear();
+  Mu_isMuTrackerArb.clear();
   Mu_isMuStandAlone.clear();
 
   Mu_px_mu.clear();
@@ -1941,7 +1947,7 @@ void TTreeGenerator::initialize_Tree_variables()
   segm4D_zHits_Time   = new TClonesArray("TVectorF",dtsegmentsSize_);
   segm4D_zHits_TimeCali   = new TClonesArray("TVectorF",dtsegmentsSize_);
 
-  Mu_matches_Wh  = new TClonesArray("TVectorF",recoMuSize_); // CB aggiungi size!
+  Mu_matches_Wh  = new TClonesArray("TVectorF",recoMuSize_);
   Mu_matches_Sec = new TClonesArray("TVectorF",recoMuSize_);
   Mu_matches_St  = new TClonesArray("TVectorF",recoMuSize_);
 
