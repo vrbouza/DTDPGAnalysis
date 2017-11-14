@@ -16,7 +16,8 @@
 //
 // Modificated M.C Fouz March/2016: TwinMux and to include tracks extrapolation and times variable
 // Modifications L. Guiducci July 2016: include TwinMux output data and clean up legacy trigger information
-// Modifications by C. Battilana: include stage-2 GMT Collection
+// Modifications C. Battilana: include stage-2 GMT Collection
+// Modifications M.C Fouz: protecting some variables when running only DT local
 
 // user include files
 #include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
@@ -42,6 +43,7 @@
 
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
+#include "DataFormats/MuonReco/interface/MuonSelectors.h"
 
 #include "DataFormats/TrackReco/interface/Track.h"
 
@@ -138,6 +140,10 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   triggerTag_      = pset.getParameter<edm::InputTag>("TriggerTag");
   triggerToken_    = consumes<edm::TriggerResults>(edm::InputTag(triggerTag_));
 
+  triggerEventTag_   = pset.getParameter<edm::InputTag>("TriggerEventTag");
+  triggerEventToken_ = consumes<trigger::TriggerEvent>(edm::InputTag(triggerEventTag_));
+  trigFilterNames_    = pset.getParameter<std::vector<std::string>>("trigFilterNames");
+
   gtLabel_         = pset.getParameter<edm::InputTag>("gtLabel"); // legacy
   gtToken_         = consumes<L1GlobalTriggerReadoutRecord>(edm::InputTag(gtLabel_)); //legacy
 
@@ -152,7 +158,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   dtltTwinMuxInSize_ = pset.getParameter<int>("dtTrigTwinMuxInSize");
   dtltTwinMuxThSize_ = pset.getParameter<int>("dtTrigTwinMuxThSize");
   gmtSize_         = pset.getParameter<int>("gmtSize"); 
-  STAMuSize_       = pset.getParameter<int>("STAMuSize");
+  recoMuSize_       = pset.getParameter<int>("recoMuSize");
   rpcRecHitSize_   = pset.getParameter<int>("rpcRecHitSize"); 
 
   PrimaryVertexTag_ = pset.getParameter<edm::InputTag>("PrimaryVertexTag");
@@ -258,7 +264,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   if(!localDTmuons_) event.getByToken(PrimaryVertexToken_, privtxs);
   
   edm::Handle<CSCSegmentCollection> cscsegments;
-  event.getByToken(cscSegmentToken_, cscsegments);
+  if(!localDTmuons_) event.getByToken(cscSegmentToken_, cscsegments);
 
   edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxOut;
   bool hasPhiTwinMuxOut=false;
@@ -287,6 +293,9 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
 
   edm::Handle<edm::TriggerResults>  hltresults;
   if(!localDTmuons_) event.getByToken(triggerToken_, hltresults); 
+
+  edm::Handle<trigger::TriggerEvent> hltEvent;
+  if(!localDTmuons_) event.getByToken(triggerEventToken_, hltEvent); 
 
   edm::Handle<RPCRecHitCollection> rpcHits;
   if(!localDTmuons_) event.getByToken(rpcRecHitToken_,rpcHits);
@@ -372,7 +381,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   if(runOnRaw_ && hasThetaTwinMux) fill_twinmuxth_variables(localTriggerTwinMux_Th);
 
   //MUONS
-  if(!localDTmuons_) fill_muons_variables(MuList);
+  if(!localDTmuons_) fill_muon_variables(MuList,hltEvent,dtGeom_);
 
   //GMT
   
@@ -387,7 +396,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   // RPC
   if(!localDTmuons_) fill_rpc_variables(event,rpcHits);
   
-   analyzeBMTF(event);
+  if(!localDTmuons_) analyzeBMTF(event);
 
   if(!localDTmuons_)  analyzeRPCunpacking(event);
 
@@ -737,32 +746,40 @@ void TTreeGenerator::fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer
   return;
 }
 
-void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuList)
+void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muList,
+					 edm::Handle<trigger::TriggerEvent> triggerEvent,
+					 const DTGeometry* dtGeom)
 {
   imuons = 0;
-  for (reco::MuonCollection::const_iterator nmuon = MuList->begin(); nmuon != MuList->end(); ++nmuon){
+  for (reco::MuonCollection::const_iterator nmuon = muList->begin(); nmuon != muList->end(); ++nmuon){
 
-    STAMu_isMuGlobal.push_back(nmuon->isGlobalMuon());
-    STAMu_isMuTracker.push_back(nmuon->isTrackerMuon());
-    STAMu_numberOfChambers.push_back(nmuon->numberOfChambers());
-    STAMu_numberOfMatches.push_back(nmuon->numberOfMatches());
+    Mu_isMuGlobal.push_back(nmuon->isGlobalMuon()); 
+    Mu_isMuTracker.push_back(nmuon->isTrackerMuon());
+    Mu_isMuStandAlone.push_back(nmuon->isStandAloneMuon()); 
+
+    bool isTrackerArb = muon::isGoodMuon((*nmuon), muon::TrackerMuonArbitrated);
+    Mu_isMuTrackerArb.push_back(isTrackerArb);
+
+    Mu_numberOfChambers.push_back(nmuon->numberOfChambers());
+    Mu_numberOfMatches.push_back(nmuon->numberOfMatches());
+    Mu_numberOfMatchedStations.push_back(nmuon->numberOfMatchedStations());
 
     Mu_px_mu.push_back(nmuon->px());
     Mu_py_mu.push_back(nmuon->py());
     Mu_pz_mu.push_back(nmuon->pz());
     Mu_phi_mu.push_back(nmuon->phi());
     Mu_eta_mu.push_back(nmuon->eta());
+    Mu_chargeMu.push_back(nmuon->charge());
 
     if(nmuon->isStandAloneMuon()) {
 
-     if(imuons >= STAMuSize_) break;
+     if(imuons >= recoMuSize_) break;
      const reco::TrackRef mutrackref = nmuon->outerTrack();
 
      STAMu_numberOfHits.push_back(mutrackref->numberOfValidHits());
 
      STAMu_recHitsSize.push_back(mutrackref->recHitsSize());
      STAMu_normchi2Mu.push_back(mutrackref->chi2()/mutrackref->ndof());
-     STAMu_chargeMu.push_back(mutrackref->charge());
      STAMu_dxyMu.push_back(mutrackref->dxy(beamspot.position()));
      STAMu_dzMu.push_back(mutrackref->dz(beamspot.position()));
      int segmIndex = 0;
@@ -814,6 +831,19 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
        STAMu_pseta_mb2.push_back(-999.);
      }
     } // if standalone
+    else {
+     STAMu_numberOfHits.push_back(-999);
+     STAMu_recHitsSize.push_back(-999);
+     STAMu_normchi2Mu.push_back(-999.);
+     STAMu_dxyMu.push_back(-999.);
+     STAMu_dzMu.push_back(-999.);
+
+     STAMu_segmIndex.push_back(-999);
+
+     STAMu_z_mb2.push_back(-999.);
+     STAMu_phi_mb2.push_back(-999.);
+     STAMu_pseta_mb2.push_back(-999.);
+    }
 
     if(nmuon->isGlobalMuon() & AnaTrackGlobalMu_) {
       // This part  gives problems in MWGR16. All the calls glbmutrackref->... give similar error  (different Product ID number)
@@ -827,7 +857,7 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
       // AnalyzeTracksFromGlobalMuons_
       // An extra variable is add  to control from python the possibility of skiping this part of the code
       //
-      const reco::TrackRef glbmutrackref = nmuon->innerTrack();
+      const reco::TrackRef glbmutrackref = nmuon->globalTrack();
       GLBMu_normchi2Mu.push_back(glbmutrackref->chi2()/glbmutrackref->ndof());
       GLBMu_dxyMu.push_back(glbmutrackref->dxy(beamspot.position()));
       GLBMu_dzMu.push_back(glbmutrackref->dz(beamspot.position()));
@@ -840,7 +870,7 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
       GLBMu_emIsoR03.push_back(nmuon->isolationR03().emEt);
       GLBMu_hadIsoR03.push_back(nmuon->isolationR03().hadEt);
     }
-    else{
+    else {
       GLBMu_normchi2Mu.push_back(-999.);
       GLBMu_dxyMu.push_back(-999.);
       GLBMu_dzMu.push_back(-999.);
@@ -851,8 +881,170 @@ void TTreeGenerator::fill_muons_variables(edm::Handle<reco::MuonCollection> MuLi
       GLBMu_emIsoR03.push_back(-999.);
       GLBMu_hadIsoR03.push_back(-999.);
     }
-    if(nmuon->isCaloCompatibilityValid()) STAMu_caloCompatibility.push_back(nmuon->caloCompatibility());
-    else STAMu_caloCompatibility.push_back(-999.);
+
+    if(isTrackerArb) {
+
+      const reco::TrackRef innertrackref = nmuon->innerTrack();
+
+      TRKMu_normchi2Mu.push_back(innertrackref->chi2()/innertrackref->ndof());
+      TRKMu_dxyMu.push_back(innertrackref->dxy(beamspot.position()));
+      TRKMu_dzMu.push_back(innertrackref->dz(beamspot.position()));
+
+      TRKMu_numberOfPixelHits.push_back(innertrackref->hitPattern().numberOfValidPixelHits());
+      TRKMu_numberOfTrackerLayers.push_back(innertrackref->hitPattern().trackerLayersWithMeasurement());
+
+      TRKMu_algo.push_back(innertrackref->algo());
+      TRKMu_origAlgo.push_back(innertrackref->originalAlgo());
+
+    }
+    else {
+      TRKMu_normchi2Mu.push_back(-999.);
+      TRKMu_dxyMu.push_back(-999.);
+      TRKMu_dzMu.push_back(-999.);
+
+      TRKMu_numberOfPixelHits.push_back(-999);
+      TRKMu_numberOfTrackerLayers.push_back(-999);
+
+      TRKMu_algo.push_back(-999);
+      TRKMu_origAlgo.push_back(-999);
+    }
+
+    static TVectorF dummyFloat(1); 
+    dummyFloat(0) = -999.;
+    Int_t iMatches = 0;
+
+    TVectorF matchesWh(24);
+    TVectorF matchesSec(24);
+    TVectorF matchesSt(24);
+    
+    TVectorF matchesX(24);
+    TVectorF matchesY(24);
+    
+    TVectorF matchesPhi(24);
+    TVectorF matchesEta(24);
+    
+    TVectorF matchesEdgeX(24);
+    TVectorF matchesEdgeY(24);
+  
+    if ( nmuon->isMatchesValid() ) {
+
+      for ( const auto & match : nmuon->matches() ) {
+
+	if ( iMatches < 16 && match.id.det() == DetId::Muon &&
+	     match.id.subdetId() == MuonSubdetId::DT ) {
+
+	  DTChamberId dtId(match.id.rawId());
+	  
+	  matchesWh(iMatches) = dtId.wheel();
+	  matchesSec(iMatches) = dtId.sector();
+	  matchesSt(iMatches) = dtId.station();
+
+	  matchesX(iMatches) = match.x;
+	  matchesY(iMatches) = match.y;
+
+	  const auto chamb = dtGeom->chamber(static_cast<DTChamberId>(match.id));
+	        
+	  matchesPhi(iMatches) = chamb->toGlobal(LocalPoint(match.x,match.y,0.)).phi();
+	  matchesEta(iMatches) = chamb->toGlobal(LocalPoint(match.x,match.y,0.)).eta();
+
+	  matchesEdgeX(iMatches) = match.edgeX;
+	  matchesEdgeY(iMatches) = match.edgeY;
+
+	  ++iMatches;
+	}
+      }
+
+    }
+
+    Mu_nMatches.push_back(iMatches);
+
+    if (iMatches > 0) {
+      new ((*Mu_matches_Wh)[imuons])  TVectorF(matchesWh);
+      new ((*Mu_matches_Sec)[imuons]) TVectorF(matchesSec);
+      new ((*Mu_matches_St)[imuons])  TVectorF(matchesSt);
+      
+      new ((*Mu_matches_x)[imuons]) TVectorF(matchesX);
+      new ((*Mu_matches_y)[imuons]) TVectorF(matchesY);
+      
+      new ((*Mu_matches_phi)[imuons]) TVectorF(matchesPhi);
+      new ((*Mu_matches_eta)[imuons]) TVectorF(matchesEta);
+      
+      new ((*Mu_matches_edgeX)[imuons]) TVectorF(matchesEdgeX);
+      new ((*Mu_matches_edgeY)[imuons]) TVectorF(matchesEdgeY);
+    }
+    else {
+      new ((*Mu_matches_Wh)[imuons])  TVectorF(dummyFloat);
+      new ((*Mu_matches_Sec)[imuons]) TVectorF(dummyFloat);
+      new ((*Mu_matches_St)[imuons])  TVectorF(dummyFloat);
+      
+      new ((*Mu_matches_x)[imuons]) TVectorF(dummyFloat);
+      new ((*Mu_matches_y)[imuons]) TVectorF(dummyFloat);
+      
+      new ((*Mu_matches_phi)[imuons]) TVectorF(dummyFloat);
+      new ((*Mu_matches_eta)[imuons]) TVectorF(dummyFloat);
+      
+      new ((*Mu_matches_edgeX)[imuons]) TVectorF(matchesEdgeX);
+      new ((*Mu_matches_edgeY)[imuons]) TVectorF(matchesEdgeY);
+    }
+    
+    STAMu_caloCompatibility.push_back(nmuon->isCaloCompatibilityValid() ? 
+				      nmuon->caloCompatibility() : -999.);
+
+    STAMu_time.push_back(nmuon->isTimeValid() ? 
+			 nmuon->time().timeAtIpInOut : -999.);
+
+    STAMu_timeNDof.push_back(nmuon->isTimeValid() ? 
+			     nmuon->time().nDof : -999.);
+
+    float iFilter = 0.;
+    TVectorF triggerFiltersDr(trigFilterNames_.size());
+
+    const trigger::size_type nFilters(triggerEvent->sizeFilters());
+
+    for (const auto & trigFilterName : trigFilterNames_)
+      { 
+
+	float minDr = 999.;
+
+	for (trigger::size_type iFilter=0; iFilter!=nFilters; ++iFilter) 
+	  {
+	
+	    std::string filterTag = triggerEvent->filterTag(iFilter).encode();
+      
+	    if (filterTag.find(trigFilterName) != std::string::npos)
+	      {
+
+		trigger::Keys objectKeys = triggerEvent->filterKeys(iFilter);
+		const trigger::TriggerObjectCollection& triggerObjects(triggerEvent->getObjects());
+	    
+		for (trigger::size_type iKey=0; iKey<objectKeys.size(); ++iKey) 
+		  {  
+		    trigger::size_type objKey = objectKeys.at(iKey);
+		    const trigger::TriggerObject& triggerObj(triggerObjects[objKey]);
+		    
+		    float trigObjEta = triggerObj.eta();
+		    float trigObjPhi = triggerObj.phi();      
+		    
+		    float muPhi = nmuon->phi();
+		    float muEta = nmuon->eta();
+		    
+		    float dPhi = acos(cos(muPhi - trigObjPhi));
+		    float dEta = muEta - trigObjEta;
+		    
+		    float dR = std::sqrt(dPhi*dPhi + dEta*dEta);
+		    
+		    if (dR < 0.3 && dR < minDr)
+		      minDr = dR;
+		  }
+	      }
+	  }
+
+	triggerFiltersDr(iFilter) = minDr;
+	iFilter++;
+	
+      }
+	
+    new ((*Mu_hlt_Dr)[imuons])  TVectorF(triggerFiltersDr);
 
     imuons++;
   }
@@ -1143,6 +1335,8 @@ void TTreeGenerator::beginJob()
   outFile = new TFile(outFile_.c_str(), "RECREATE", "");
   outFile->cd();
 
+  outFile->WriteObject(&trigFilterNames_,"triggerFilterNames");
+
   tree_ = new TTree ("DTTree", "CMSSW DT tree");
 
   //Event info
@@ -1273,35 +1467,68 @@ void TTreeGenerator::beginJob()
   tree_->Branch("ltTwinMux_thHits",&ltTwinMux_thHits);
 
   //muon variables
-  tree_->Branch("Mu_isMuGlobal",&STAMu_isMuGlobal);
-  tree_->Branch("Mu_isMuTracker",&STAMu_isMuTracker);
-  tree_->Branch("Mu_numberOfChambers_sta",&STAMu_numberOfChambers);
-  tree_->Branch("Mu_numberOfMatches_sta",&STAMu_numberOfMatches);
-  tree_->Branch("Mu_numberOfHits_sta",&STAMu_numberOfHits);
-  tree_->Branch("Mu_segmentIndex_sta",&STAMu_segmIndex);
+  tree_->Branch("Mu_isMuGlobal",&Mu_isMuGlobal);
+  tree_->Branch("Mu_isMuTracker",&Mu_isMuTracker);
+  tree_->Branch("Mu_isMuTrackerArb",&Mu_isMuTrackerArb);
+  tree_->Branch("Mu_isMuStandAlone",&Mu_isMuStandAlone);
+
+  tree_->Branch("Mu_nMatches",&Mu_nMatches);
+  tree_->Branch("Mu_numberOfChambers_sta",&Mu_numberOfChambers); //CB they're not a STA property
+  tree_->Branch("Mu_numberOfMatches_sta",&Mu_numberOfMatches);   //CB they're not a STA property
+  tree_->Branch("Mu_numberOfMatchedStations",&Mu_numberOfMatchedStations);
+
   tree_->Branch("Mu_px",&Mu_px_mu);
   tree_->Branch("Mu_py",&Mu_py_mu);
   tree_->Branch("Mu_pz",&Mu_pz_mu);
   tree_->Branch("Mu_phi",&Mu_phi_mu);
   tree_->Branch("Mu_eta",&Mu_eta_mu);
-  tree_->Branch("Mu_recHitsSize",&STAMu_recHitsSize);
-  tree_->Branch("Mu_normchi2_sta",&STAMu_normchi2Mu);
-  tree_->Branch("Mu_charge",&STAMu_chargeMu);
+
+  tree_->Branch("Mu_numberOfHits_sta",&STAMu_numberOfHits);
+  tree_->Branch("Mu_segmentIndex_sta",&STAMu_segmIndex);
+  tree_->Branch("Mu_recHitsSize",&STAMu_recHitsSize); // CB this is sta
+  tree_->Branch("Mu_normchi2_sta",&STAMu_normchi2Mu); 
+  tree_->Branch("Mu_charge",&Mu_chargeMu);
   tree_->Branch("Mu_dxy_sta",&STAMu_dxyMu);
   tree_->Branch("Mu_dz_sta",&STAMu_dzMu);
+
+  tree_->Branch("Mu_z_mb2_mu",&STAMu_z_mb2);
+  tree_->Branch("Mu_phi_mb2_mu",&STAMu_phi_mb2);
+  tree_->Branch("Mu_pseta_mb2_mu",&STAMu_pseta_mb2);
+
   tree_->Branch("Mu_normchi2_glb",&GLBMu_normchi2Mu);
   tree_->Branch("Mu_dxy_glb",&GLBMu_dxyMu);
   tree_->Branch("Mu_dz_glb",&GLBMu_dzMu);
   tree_->Branch("Mu_numberOfPixelHits_glb",&GLBMu_numberOfPixelHits);
   tree_->Branch("Mu_numberOfTrackerHits_glb",&GLBMu_numberOfTrackerHits);
   tree_->Branch("Mu_tkIsoR03_glb",&GLBMu_tkIsoR03);
-  tree_->Branch("Mu_ntkIsoR03_glb",&GLBMu_ntkIsoR03);
-  tree_->Branch("Mu_emIsoR03_glb",&GLBMu_emIsoR03);
-  tree_->Branch("Mu_hadIsoR03_glb",&GLBMu_hadIsoR03);
-  tree_->Branch("STAMu_caloCompatibility",&STAMu_caloCompatibility);
-  tree_->Branch("Mu_z_mb2_mu",&STAMu_z_mb2);
-  tree_->Branch("Mu_phi_mb2_mu",&STAMu_phi_mb2);
-  tree_->Branch("Mu_pseta_mb2_mu",&STAMu_pseta_mb2);
+  tree_->Branch("Mu_ntkIsoR03_glb",&GLBMu_ntkIsoR03); // CB is this needed?
+  tree_->Branch("Mu_emIsoR03_glb",&GLBMu_emIsoR03);   // CB is this needed?
+  tree_->Branch("Mu_hadIsoR03_glb",&GLBMu_hadIsoR03); // CB is this needed?
+
+  tree_->Branch("Mu_normchi2_trk",&TRKMu_normchi2Mu);
+  tree_->Branch("Mu_dxy_trk",&TRKMu_dxyMu);
+  tree_->Branch("Mu_dz_trk",&TRKMu_dzMu);
+  tree_->Branch("Mu_numberOfPixelHits_trk",&TRKMu_numberOfPixelHits);
+  tree_->Branch("Mu_numberOfTrackerLayers_trk",&TRKMu_numberOfTrackerLayers);
+  tree_->Branch("Mu_algo_trk",&TRKMu_algo);
+  tree_->Branch("Mu_origAlgo_trk",&TRKMu_origAlgo);
+
+  tree_->Branch("Mu_matches_Wh",&Mu_matches_Wh,2048000,0);
+  tree_->Branch("Mu_matches_Sec",&Mu_matches_Sec,2048000,0);
+  tree_->Branch("Mu_matches_St",&Mu_matches_St,2048000,0);
+  tree_->Branch("Mu_matches_x",&Mu_matches_x,2048000,0);
+  tree_->Branch("Mu_matches_y",&Mu_matches_y,2048000,0);
+  tree_->Branch("Mu_matches_phi",&Mu_matches_phi,2048000,0); 
+  tree_->Branch("Mu_matches_eta",&Mu_matches_eta,2048000,0);
+  tree_->Branch("Mu_matches_edgeX",&Mu_matches_edgeX,2048000,0); 
+  tree_->Branch("Mu_matches_edgeY",&Mu_matches_edgeY,2048000,0);
+
+  tree_->Branch("Mu_hlt_Dr",&Mu_hlt_Dr,2048000,0); 
+
+  tree_->Branch("STAMu_caloCompatibility",&STAMu_caloCompatibility); // CB is this needed? naming?
+
+  tree_->Branch("Mu_time_sta",&STAMu_time);
+  tree_->Branch("Mu_timeNDof_sta",&STAMu_timeNDof);  
 
   //GMT
   tree_->Branch("gmt_bx",&gmt_bx);
@@ -1516,21 +1743,28 @@ inline void TTreeGenerator::clear_Arrays()
   ltTwinMux_thHits.clear();
 
   //muon variables
-  STAMu_isMuGlobal.clear();
-  STAMu_isMuTracker.clear();
-  STAMu_numberOfChambers.clear();
-  STAMu_numberOfMatches.clear();
-  STAMu_numberOfHits.clear();
-  STAMu_segmIndex.clear();
+  Mu_isMuGlobal.clear();
+  Mu_isMuTracker.clear();
+  Mu_isMuTrackerArb.clear();
+  Mu_isMuStandAlone.clear();
 
   Mu_px_mu.clear();
   Mu_py_mu.clear();
   Mu_pz_mu.clear();
   Mu_phi_mu.clear();
   Mu_eta_mu.clear();
+  Mu_chargeMu.clear();
+
+  Mu_nMatches.clear();
+  Mu_numberOfChambers.clear();
+  Mu_numberOfMatches.clear();
+  Mu_numberOfMatchedStations.clear();
+
+  STAMu_numberOfHits.clear();
+  STAMu_segmIndex.clear();
+
   STAMu_recHitsSize.clear();
   STAMu_normchi2Mu.clear();
-  STAMu_chargeMu.clear();
   STAMu_dxyMu.clear();
   STAMu_dzMu.clear();
 
@@ -1546,11 +1780,38 @@ inline void TTreeGenerator::clear_Arrays()
   GLBMu_emIsoR03.clear();
   GLBMu_hadIsoR03.clear();
 
+  TRKMu_normchi2Mu.clear();
+  TRKMu_dxyMu.clear();
+  TRKMu_dzMu.clear();
+
+  TRKMu_numberOfPixelHits.clear();
+  TRKMu_numberOfTrackerLayers.clear();
+
+  TRKMu_algo.clear();
+  TRKMu_origAlgo.clear();
+
   STAMu_caloCompatibility.clear();
+  STAMu_time.clear();
+  STAMu_timeNDof.clear();
 
   STAMu_z_mb2.clear();
   STAMu_phi_mb2.clear();
   STAMu_pseta_mb2.clear();
+
+  Mu_matches_Wh->Clear(); 
+  Mu_matches_Sec->Clear();    
+  Mu_matches_St->Clear();     
+
+  Mu_matches_x->Clear();      
+  Mu_matches_y->Clear();      
+
+  Mu_matches_phi->Clear();    
+  Mu_matches_eta->Clear();    
+
+  Mu_matches_edgeX->Clear();  
+  Mu_matches_edgeY->Clear();
+
+  Mu_hlt_Dr->Clear();  
 
   //GMT
   gmt_bx.clear();
@@ -1686,6 +1947,21 @@ void TTreeGenerator::initialize_Tree_variables()
   segm4D_zHits_Layer  = new TClonesArray("TVectorF",dtsegmentsSize_);
   segm4D_zHits_Time   = new TClonesArray("TVectorF",dtsegmentsSize_);
   segm4D_zHits_TimeCali   = new TClonesArray("TVectorF",dtsegmentsSize_);
+
+  Mu_matches_Wh  = new TClonesArray("TVectorF",recoMuSize_);
+  Mu_matches_Sec = new TClonesArray("TVectorF",recoMuSize_);
+  Mu_matches_St  = new TClonesArray("TVectorF",recoMuSize_);
+
+  Mu_matches_x  = new TClonesArray("TVectorF",recoMuSize_);
+  Mu_matches_y  = new TClonesArray("TVectorF",recoMuSize_);
+
+  Mu_matches_phi  = new TClonesArray("TVectorF",recoMuSize_);
+  Mu_matches_eta  = new TClonesArray("TVectorF",recoMuSize_);
+
+  Mu_matches_edgeX  = new TClonesArray("TVectorF",recoMuSize_);
+  Mu_matches_edgeY  = new TClonesArray("TVectorF",recoMuSize_);
+
+  Mu_hlt_Dr  = new TClonesArray("TVectorF",recoMuSize_);
 
   return;
 }

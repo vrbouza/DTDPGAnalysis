@@ -21,6 +21,10 @@
 
 #include "TrackingTools/GeomPropagators/interface/Propagator.h"
 #include <FWCore/Framework/interface/ConsumesCollector.h>
+
+#include "FWCore/Common/interface/TriggerNames.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/HLTReco/interface/TriggerEvent.h"
 #include "DataFormats/L1TMuon/interface/RegionalMuonCandFwd.h"
 #include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
 #include "DataFormats/L1Trigger/interface/Muon.h"
@@ -59,7 +63,9 @@ private:
   void fill_twinmuxout_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxOut);
   void fill_twinmuxin_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxIn);
   void fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer> localTriggerTwinMux_Th);
-  void fill_muons_variables(edm::Handle<reco::MuonCollection> MuList);
+  void fill_muon_variables(edm::Handle<reco::MuonCollection>  muList,
+			   edm::Handle<trigger::TriggerEvent> hltEvent,
+			   const DTGeometry* dtGeom);
   void fill_gmt_variables(const edm::Handle<l1t::MuonBxCollection> & gmt);
   void fill_gt_variables(edm::Handle<L1GlobalTriggerReadoutRecord> gtrr, const L1GtTriggerMenu* menu);
   void fill_hlt_variables(const edm::Event& e, edm::Handle<edm::TriggerResults> hltresults);
@@ -102,6 +108,8 @@ private:
   edm::EDGetTokenT<LumiScalersCollection> scalersSourceToken_;
   edm::InputTag triggerTag_;
   edm::EDGetTokenT<edm::TriggerResults> triggerToken_ ;
+  edm::InputTag triggerEventTag_;
+  edm::EDGetTokenT<trigger::TriggerEvent> triggerEventToken_ ;
   edm::InputTag lumiInputTag_;
   edm::EDGetTokenT<LumiDetails> lumiProducerToken_ ;
   edm::EDGetTokenT<LumiSummary> lumiSummaryToken_;
@@ -112,7 +120,7 @@ private:
   edm::InputTag UnpackingRpcRecHitLabel_;
   edm::EDGetTokenT<RPCRecHitCollection> UnpackingRpcRecHitToken_;
    
-      bool OnlyBarrel_;
+  bool OnlyBarrel_;
 
   bool runOnRaw_;
   bool runOnSimulation_;
@@ -122,6 +130,8 @@ private:
   bool AnaTrackGlobalMu_;  // To avoid look to the global tracks (The muon collection: vector<reco::Muon> exit,  but not the global tracks:  vector<reco::Track> )
   bool runLegacy_gmt_;
   std::string outFile_;
+
+  std::vector<std::string> trigFilterNames_;
 
   edm::ESHandle<MagneticField> theBField;
   edm::ESHandle<Propagator> propagatorAlong;
@@ -135,7 +145,7 @@ private:
   int dtltTwinMuxInSize_;
   int dtltTwinMuxThSize_;
   int gmtSize_;
-  int STAMuSize_;
+  int recoMuSize_;
   int rpcRecHitSize_;
 
   //counters

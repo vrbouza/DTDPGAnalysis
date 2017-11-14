@@ -53,11 +53,7 @@ process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring
   (
 
-    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A00EF856-F497-E711-94A7-02163E0123DD.root',
-    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A01BB300-F197-E711-BB65-02163E01A4F9.root',
-    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A05C9A48-F997-E711-B074-02163E019CA8.root',
-    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A0A56765-F397-E711-B016-02163E01219D.root',
-    '/store/express/Run2017D/ExpressPhysics/FEVT/Express-v1/000/302/654/00000/A211F0C6-F097-E711-BB10-02163E019CBC.root',
+    '/store/express/Run2017F/ExpressPhysics/FEVT/Express-v1/000/306/121/00000/AA283EDA-C9C0-E711-9DCB-02163E0145AF.root',
 
   ),
   secondaryFileNames = cms.untracked.vstring(
