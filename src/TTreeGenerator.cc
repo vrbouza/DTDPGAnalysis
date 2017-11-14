@@ -16,7 +16,8 @@
 //
 // Modificated M.C Fouz March/2016: TwinMux and to include tracks extrapolation and times variable
 // Modifications L. Guiducci July 2016: include TwinMux output data and clean up legacy trigger information
-// Modifications by C. Battilana: include stage-2 GMT Collection
+// Modifications C. Battilana: include stage-2 GMT Collection
+// Modifications M.C Fouz: protecting some variables when running only DT local
 
 // user include files
 #include "DataFormats/CSCRecHit/interface/CSCSegmentCollection.h"
@@ -263,7 +264,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   if(!localDTmuons_) event.getByToken(PrimaryVertexToken_, privtxs);
   
   edm::Handle<CSCSegmentCollection> cscsegments;
-  event.getByToken(cscSegmentToken_, cscsegments);
+  if(!localDTmuons_) event.getByToken(cscSegmentToken_, cscsegments);
 
   edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxOut;
   bool hasPhiTwinMuxOut=false;
@@ -395,7 +396,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   // RPC
   if(!localDTmuons_) fill_rpc_variables(event,rpcHits);
   
-   analyzeBMTF(event);
+  if(!localDTmuons_) analyzeBMTF(event);
 
   if(!localDTmuons_)  analyzeRPCunpacking(event);
 
