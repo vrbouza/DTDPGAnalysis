@@ -138,6 +138,7 @@ std::vector<short> Mu_isMuGlobal;
 std::vector<short> Mu_isMuTracker;
 std::vector<short> Mu_isMuTrackerArb;
 std::vector<short> Mu_isMuStandAlone;
+std::vector<short> Mu_isMuRPC;
 
 std::vector<int>   Mu_nMatches;
 std::vector<int>   Mu_numberOfChambers;
@@ -184,6 +185,8 @@ std::vector<int> TRKMu_origAlgo;
 std::vector<float> STAMu_caloCompatibility;
 std::vector<float> STAMu_time;
 std::vector<float> STAMu_timeNDof;
+
+std::vector<int> RPCMu_numberOfRPCLayers;
 
 TClonesArray *Mu_matches_Wh;  
 TClonesArray *Mu_matches_Sec;

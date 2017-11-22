@@ -755,8 +755,9 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
 
     Mu_isMuGlobal.push_back(nmuon->isGlobalMuon()); 
     Mu_isMuTracker.push_back(nmuon->isTrackerMuon());
-    Mu_isMuStandAlone.push_back(nmuon->isStandAloneMuon()); 
-
+    Mu_isMuStandAlone.push_back(nmuon->isStandAloneMuon());
+    Mu_isMuRPC.push_back(nmuon->isRPCMuon());
+    
     bool isTrackerArb = muon::isGoodMuon((*nmuon), muon::TrackerMuonArbitrated);
     Mu_isMuTrackerArb.push_back(isTrackerArb);
 
@@ -995,6 +996,9 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
 
     STAMu_timeNDof.push_back(nmuon->isTimeValid() ? 
 			     nmuon->time().nDof : -999.);
+
+    RPCMu_numberOfRPCLayers.push_back(nmuon->isRPCMuon() ? 
+				      nmuon->numberOfMatchedRPCLayers() : -999.);
 
     float iFilter = 0.;
     TVectorF triggerFiltersDr(trigFilterNames_.size());
@@ -1471,6 +1475,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_isMuTracker",&Mu_isMuTracker);
   tree_->Branch("Mu_isMuTrackerArb",&Mu_isMuTrackerArb);
   tree_->Branch("Mu_isMuStandAlone",&Mu_isMuStandAlone);
+  tree_->Branch("Mu_isMuRPC",&Mu_isMuRPC);
 
   tree_->Branch("Mu_nMatches",&Mu_nMatches);
   tree_->Branch("Mu_numberOfChambers_sta",&Mu_numberOfChambers); //CB they're not a STA property
@@ -1512,6 +1517,8 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_numberOfTrackerLayers_trk",&TRKMu_numberOfTrackerLayers);
   tree_->Branch("Mu_algo_trk",&TRKMu_algo);
   tree_->Branch("Mu_origAlgo_trk",&TRKMu_origAlgo);
+
+  tree_->Branch("Mu_numberOfRPCLayers_rpc",&RPCMu_numberOfRPCLayers);
 
   tree_->Branch("Mu_matches_Wh",&Mu_matches_Wh,2048000,0);
   tree_->Branch("Mu_matches_Sec",&Mu_matches_Sec,2048000,0);
@@ -1747,7 +1754,8 @@ inline void TTreeGenerator::clear_Arrays()
   Mu_isMuTracker.clear();
   Mu_isMuTrackerArb.clear();
   Mu_isMuStandAlone.clear();
-
+  Mu_isMuRPC.clear();
+  
   Mu_px_mu.clear();
   Mu_py_mu.clear();
   Mu_pz_mu.clear();
@@ -1793,6 +1801,8 @@ inline void TTreeGenerator::clear_Arrays()
   STAMu_caloCompatibility.clear();
   STAMu_time.clear();
   STAMu_timeNDof.clear();
+
+  RPCMu_numberOfRPCLayers.clear();
 
   STAMu_z_mb2.clear();
   STAMu_phi_mb2.clear();
