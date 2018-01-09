@@ -32,7 +32,7 @@ process.load("RecoMuon.TrackingTools.MuonServiceProxy_cff")
 
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")  #DB v2, at least since GR_E_V42
 
-process.GlobalTag.globaltag = '92X_dataRun2_Express_v7'
+process.GlobalTag.globaltag = '92X_dataRun2_Prompt_v8'
 
 # for the emulator
 process.load("L1TriggerConfig.DTTPGConfigProducers.L1DTTPGConfigFromDB_cff")
