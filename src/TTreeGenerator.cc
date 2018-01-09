@@ -1355,7 +1355,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("runnumber",&runnumber,"runnumber/I");
   tree_->Branch("lumiblock",&lumiblock,"lumiblock/I");
   tree_->Branch("eventNumber",&eventNumber,"eventNumber/L");
-  tree_->Branch("timestamp",&timestamp,"timestamp/F");
+  tree_->Branch("timestamp",&timestamp,"timestamp/l");
   tree_->Branch("bunchXing",&bunchXing,"bunchXing/I");
   tree_->Branch("orbitNum",&orbitNum,"orbitNum/L");
 
