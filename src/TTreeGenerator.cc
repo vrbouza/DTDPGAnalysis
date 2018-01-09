@@ -753,6 +753,8 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
   imuons = 0;
   for (reco::MuonCollection::const_iterator nmuon = muList->begin(); nmuon != muList->end(); ++nmuon){
 
+    if(imuons >= recoMuSize_) break;
+
     Mu_isMuGlobal.push_back(nmuon->isGlobalMuon()); 
     Mu_isMuTracker.push_back(nmuon->isTrackerMuon());
     Mu_isMuStandAlone.push_back(nmuon->isStandAloneMuon());
@@ -764,6 +766,7 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
     Mu_numberOfChambers.push_back(nmuon->numberOfChambers());
     Mu_numberOfMatches.push_back(nmuon->numberOfMatches());
     Mu_numberOfMatchedStations.push_back(nmuon->numberOfMatchedStations());
+    Mu_stationMask.push_back(nmuon->stationMask());
 
     Mu_px_mu.push_back(nmuon->px());
     Mu_py_mu.push_back(nmuon->py());
@@ -773,79 +776,77 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
     Mu_chargeMu.push_back(nmuon->charge());
 
     if(nmuon->isStandAloneMuon()) {
+      const reco::TrackRef mutrackref = nmuon->outerTrack();
 
-     if(imuons >= recoMuSize_) break;
-     const reco::TrackRef mutrackref = nmuon->outerTrack();
+      STAMu_numberOfHits.push_back(mutrackref->numberOfValidHits());
 
-     STAMu_numberOfHits.push_back(mutrackref->numberOfValidHits());
-
-     STAMu_recHitsSize.push_back(mutrackref->recHitsSize());
-     STAMu_normchi2Mu.push_back(mutrackref->chi2()/mutrackref->ndof());
-     STAMu_dxyMu.push_back(mutrackref->dxy(beamspot.position()));
-     STAMu_dzMu.push_back(mutrackref->dz(beamspot.position()));
-     int segmIndex = 0;
-     int segmWord = 0;
-     std::vector<int> segmIndex_container;
-     for (trackingRecHit_iterator recMu = mutrackref->recHitsBegin(); recMu!=mutrackref->recHitsEnd(); recMu++){
-       DetId detid = (*recMu)->geographicalId();
-       if(detid.subdetId() != MuonSubdetId::DT) continue;
-       DTChamberId recChamb(detid);
-       const short recWheel   = recChamb.wheel();
-       const short recSector  = recChamb.sector();
-       const short recStation = recChamb.station();
-       //loop over the saved segments and find the position of the rechits
-       //This is the quickest way to do this search: find the sector (highest number of
-       //combinations), loop over the find iterator, and search for wheel and stations
-       std::vector<short>::iterator sectorIt = std::find(segm4D_sector.begin(),segm4D_sector.end(),recSector);
-       while(sectorIt != segm4D_sector.end()){
-      segmIndex = (short) distance(segm4D_sector.begin(),sectorIt);
-      if(recWheel == segm4D_wheel.at(segmIndex) && recStation == segm4D_station.at(segmIndex))
-        if(find(segmIndex_container.begin(),segmIndex_container.end(),segmIndex) == segmIndex_container.end()){
-          segmIndex_container.push_back(segmIndex);
-          segmWord |= (1 << segmIndex);
-        }
-      sectorIt = std::find(sectorIt+1,segm4D_sector.end(),recSector);
-       }
-     }
-     STAMu_segmIndex.push_back(segmWord);
-
-     //extrapolate the muon to the MB2
-     TrajectoryStateOnSurface tsos;
-     tsos = cylExtrapTrkSam(mutrackref,500.);  // track at MB2 radius - extrapolation
-     if (tsos.isValid()){
-       static const float pig = acos(-1.);
-       const double xx = tsos.globalPosition().x();
-       const double yy = tsos.globalPosition().y();
-       const double zz = tsos.globalPosition().z();
-       const double rr       = sqrt(xx*xx + yy*yy);
-       const double cosphi   = xx/rr;
-       const double abspseta = -log(tan(atan(fabs(rr/zz))/2.));
-       STAMu_z_mb2.push_back(zz);
-       if (yy>=0) STAMu_phi_mb2.push_back(acos(cosphi));
-       else       STAMu_phi_mb2.push_back(2*pig-acos(cosphi));
-       if (zz>=0) STAMu_pseta_mb2.push_back(abspseta);
-       else       STAMu_pseta_mb2.push_back(-abspseta);
-     }
-     else{
-       STAMu_z_mb2.push_back(-999.);
-       STAMu_phi_mb2.push_back(-999.);
-       STAMu_pseta_mb2.push_back(-999.);
-     }
+      STAMu_recHitsSize.push_back(mutrackref->recHitsSize());
+      STAMu_normchi2Mu.push_back(mutrackref->chi2()/mutrackref->ndof());
+      STAMu_dxyMu.push_back(mutrackref->dxy(beamspot.position()));
+      STAMu_dzMu.push_back(mutrackref->dz(beamspot.position()));
+      int segmIndex = 0;
+      int segmWord = 0;
+      std::vector<int> segmIndex_container;
+      for (trackingRecHit_iterator recMu = mutrackref->recHitsBegin(); recMu!=mutrackref->recHitsEnd(); recMu++){
+	DetId detid = (*recMu)->geographicalId();
+	if(detid.subdetId() != MuonSubdetId::DT) continue;
+	DTChamberId recChamb(detid);
+	const short recWheel   = recChamb.wheel();
+	const short recSector  = recChamb.sector();
+	const short recStation = recChamb.station();
+	//loop over the saved segments and find the position of the rechits
+	//This is the quickest way to do this search: find the sector (highest number of
+	//combinations), loop over the find iterator, and search for wheel and stations
+	std::vector<short>::iterator sectorIt = std::find(segm4D_sector.begin(),segm4D_sector.end(),recSector);
+	while(sectorIt != segm4D_sector.end()){
+	  segmIndex = (short) distance(segm4D_sector.begin(),sectorIt);
+	  if(recWheel == segm4D_wheel.at(segmIndex) && recStation == segm4D_station.at(segmIndex))
+	    if(find(segmIndex_container.begin(),segmIndex_container.end(),segmIndex) == segmIndex_container.end()){
+	      segmIndex_container.push_back(segmIndex);
+	      segmWord |= (1 << segmIndex);
+	    }
+	  sectorIt = std::find(sectorIt+1,segm4D_sector.end(),recSector);
+	}
+      }
+      STAMu_segmIndex.push_back(segmWord);
+      
+      //extrapolate the muon to the MB2
+      TrajectoryStateOnSurface tsos;
+      tsos = cylExtrapTrkSam(mutrackref,500.);  // track at MB2 radius - extrapolation
+      if (tsos.isValid()){
+	static const float pig = acos(-1.);
+	const double xx = tsos.globalPosition().x();
+	const double yy = tsos.globalPosition().y();
+	const double zz = tsos.globalPosition().z();
+	const double rr       = sqrt(xx*xx + yy*yy);
+	const double cosphi   = xx/rr;
+	const double abspseta = -log(tan(atan(fabs(rr/zz))/2.));
+	STAMu_z_mb2.push_back(zz);
+	if (yy>=0) STAMu_phi_mb2.push_back(acos(cosphi));
+	else       STAMu_phi_mb2.push_back(2*pig-acos(cosphi));
+	if (zz>=0) STAMu_pseta_mb2.push_back(abspseta);
+	else       STAMu_pseta_mb2.push_back(-abspseta);
+      }
+      else{
+	STAMu_z_mb2.push_back(-999.);
+	STAMu_phi_mb2.push_back(-999.);
+	STAMu_pseta_mb2.push_back(-999.);
+      }
     } // if standalone
     else {
-     STAMu_numberOfHits.push_back(-999);
-     STAMu_recHitsSize.push_back(-999);
-     STAMu_normchi2Mu.push_back(-999.);
-     STAMu_dxyMu.push_back(-999.);
-     STAMu_dzMu.push_back(-999.);
-
-     STAMu_segmIndex.push_back(-999);
-
-     STAMu_z_mb2.push_back(-999.);
-     STAMu_phi_mb2.push_back(-999.);
-     STAMu_pseta_mb2.push_back(-999.);
+      STAMu_numberOfHits.push_back(-999);
+      STAMu_recHitsSize.push_back(-999);
+      STAMu_normchi2Mu.push_back(-999.);
+      STAMu_dxyMu.push_back(-999.);
+      STAMu_dzMu.push_back(-999.);
+      
+      STAMu_segmIndex.push_back(-999);
+      
+      STAMu_z_mb2.push_back(-999.);
+      STAMu_phi_mb2.push_back(-999.);
+      STAMu_pseta_mb2.push_back(-999.);
     }
-
+  
     if(nmuon->isGlobalMuon() & AnaTrackGlobalMu_) {
       // This part  gives problems in MWGR16. All the calls glbmutrackref->... give similar error  (different Product ID number)
       // RefCore: A request to resolve a reference to a product of type 'std::vector<reco::Track>' with ProductID '2:533'
@@ -883,7 +884,10 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
       GLBMu_hadIsoR03.push_back(-999.);
     }
 
-    if(isTrackerArb) {
+    // all muons with inner track
+    if(nmuon->isTrackerMuon() || 
+       nmuon->isGlobalMuon()  || 
+       nmuon->isRPCMuon()) {
 
       const reco::TrackRef innertrackref = nmuon->innerTrack();
 
@@ -894,6 +898,8 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
       TRKMu_numberOfPixelHits.push_back(innertrackref->hitPattern().numberOfValidPixelHits());
       TRKMu_numberOfTrackerLayers.push_back(innertrackref->hitPattern().trackerLayersWithMeasurement());
 
+      TRKMu_tkIsoR03.push_back(nmuon->isolationR03().sumPt);
+
       TRKMu_algo.push_back(innertrackref->algo());
       TRKMu_origAlgo.push_back(innertrackref->originalAlgo());
 
@@ -902,10 +908,12 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
       TRKMu_normchi2Mu.push_back(-999.);
       TRKMu_dxyMu.push_back(-999.);
       TRKMu_dzMu.push_back(-999.);
-
+      
       TRKMu_numberOfPixelHits.push_back(-999);
       TRKMu_numberOfTrackerLayers.push_back(-999);
 
+      TRKMu_tkIsoR03.push_back(-999.);
+      
       TRKMu_algo.push_back(-999);
       TRKMu_origAlgo.push_back(-999);
     }
@@ -956,7 +964,7 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
       }
 
     }
-
+    
     Mu_nMatches.push_back(iMatches);
 
     if (iMatches > 0) {
@@ -1347,7 +1355,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("runnumber",&runnumber,"runnumber/I");
   tree_->Branch("lumiblock",&lumiblock,"lumiblock/I");
   tree_->Branch("eventNumber",&eventNumber,"eventNumber/L");
-  tree_->Branch("timestamp",&timestamp,"timestamp/F");
+  tree_->Branch("timestamp",&timestamp,"timestamp/l");
   tree_->Branch("bunchXing",&bunchXing,"bunchXing/I");
   tree_->Branch("orbitNum",&orbitNum,"orbitNum/L");
 
@@ -1481,6 +1489,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_numberOfChambers_sta",&Mu_numberOfChambers); //CB they're not a STA property
   tree_->Branch("Mu_numberOfMatches_sta",&Mu_numberOfMatches);   //CB they're not a STA property
   tree_->Branch("Mu_numberOfMatchedStations",&Mu_numberOfMatchedStations);
+  tree_->Branch("Mu_stationMask",&Mu_stationMask);
 
   tree_->Branch("Mu_px",&Mu_px_mu);
   tree_->Branch("Mu_py",&Mu_py_mu);
@@ -1515,6 +1524,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Mu_dz_trk",&TRKMu_dzMu);
   tree_->Branch("Mu_numberOfPixelHits_trk",&TRKMu_numberOfPixelHits);
   tree_->Branch("Mu_numberOfTrackerLayers_trk",&TRKMu_numberOfTrackerLayers);
+  tree_->Branch("Mu_tkIsoR03_trk",&TRKMu_tkIsoR03);
   tree_->Branch("Mu_algo_trk",&TRKMu_algo);
   tree_->Branch("Mu_origAlgo_trk",&TRKMu_origAlgo);
 
@@ -1767,6 +1777,7 @@ inline void TTreeGenerator::clear_Arrays()
   Mu_numberOfChambers.clear();
   Mu_numberOfMatches.clear();
   Mu_numberOfMatchedStations.clear();
+  Mu_stationMask.clear();
 
   STAMu_numberOfHits.clear();
   STAMu_segmIndex.clear();
@@ -1794,6 +1805,8 @@ inline void TTreeGenerator::clear_Arrays()
 
   TRKMu_numberOfPixelHits.clear();
   TRKMu_numberOfTrackerLayers.clear();
+
+  TRKMu_tkIsoR03.clear();
 
   TRKMu_algo.clear();
   TRKMu_origAlgo.clear();

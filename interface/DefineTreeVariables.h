@@ -7,7 +7,7 @@
 int runnumber;
 int lumiblock;
 long eventNumber;
-float timestamp;
+unsigned long long timestamp;
 int bunchXing;
 long orbitNum;
 
@@ -144,6 +144,7 @@ std::vector<int>   Mu_nMatches;
 std::vector<int>   Mu_numberOfChambers;
 std::vector<int>   Mu_numberOfMatches;
 std::vector<int>   Mu_numberOfMatchedStations;
+std::vector<unsigned int>   Mu_stationMask;
 
 std::vector<float> Mu_px_mu;
 std::vector<float> Mu_py_mu;
@@ -178,6 +179,8 @@ std::vector<float> TRKMu_dzMu;
 
 std::vector<int> TRKMu_numberOfPixelHits;
 std::vector<int> TRKMu_numberOfTrackerLayers;
+
+std::vector<float> TRKMu_tkIsoR03;
 
 std::vector<int> TRKMu_algo;
 std::vector<int> TRKMu_origAlgo;
