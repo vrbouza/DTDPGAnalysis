@@ -4,6 +4,9 @@
  *  $Date: 2011/07/13 08:47:00 $
  *  $Revision: 1.4 $
  *  \author G. Cerminara - INFN Torino
+ *
+ *  Last change: 2011/12/04 M.C.F
+ *      Plots moved from FEDIntegrity to 00-DataIntegrity Directory
  */
 
 #include "UserCode/DTDPGAnalysis/src/DTROUtility.h"
@@ -23,9 +26,13 @@ DTROUtility::DTROUtility( TFile* file, const std::string mainFolder) {
   //const TH1F *fedIntegrityHisto = (const TH1F *) file->Get(string(mainFolder + "FEDIntegrity_DT/FEDEntries").c_str());
   //const TH1F *fedIntegrityHistoNF = (const TH1F *) file->Get(string(mainFolder + "FEDIntegrity_DT/FEDNonFatal").c_str());
   //const TH1F *fedIntegrityHistoF = (const TH1F *) file->Get(string(mainFolder + "FEDIntegrity_DT/FEDFatal").c_str());
-  const TH1F *fedIntegrityHisto = (const TH1F *) file->Get(string(mainFolder + "FEDIntegrity/FEDEntries").c_str());
-  const TH1F *fedIntegrityHistoNF = (const TH1F *) file->Get(string(mainFolder + "FEDIntegrity/FEDNonFatal").c_str());
-  const TH1F *fedIntegrityHistoF = (const TH1F *) file->Get(string(mainFolder + "FEDIntegrity/FEDFatal").c_str());
+  //const TH1F *fedIntegrityHisto = (const TH1F *) file->Get(string(mainFolder + "FEDIntegrity/FEDEntries").c_str());
+  //const TH1F *fedIntegrityHistoNF = (const TH1F *) file->Get(string(mainFolder + "FEDIntegrity/FEDNonFatal").c_str());
+  //const TH1F *fedIntegrityHistoF = (const TH1F *) file->Get(string(mainFolder + "FEDIntegrity/FEDFatal").c_str());
+
+  const TH1F *fedIntegrityHisto = (const TH1F *) file->Get(string(mainFolder + "00-DataIntegrity/FEDEntries").c_str());
+  const TH1F *fedIntegrityHistoNF = (const TH1F *) file->Get(string(mainFolder + "00-DataIntegrity/FEDNonFatal").c_str());
+  const TH1F *fedIntegrityHistoF = (const TH1F *) file->Get(string(mainFolder + "00-DataIntegrity/FEDFatal").c_str());
 
   if(fedIntegrityHisto != 0 && fedIntegrityHistoNF != 0 && fedIntegrityHistoF != 0) {
     for(int fed0 = 770; fed0 != 775; ++fed0) { // loop over FEDs
