@@ -5,8 +5,8 @@ This package contains the code needed for CMS DT Prompt Offline Analysis and for
 To install it and run DTNtuple production:
 
 ```
-cmsrel CMSSW_9_2_10
-cd CMSSW_9_2_10/src/
+cmsrel CMSSW_9_4_0
+cd CMSSW_9_4_0/src/
 
 cmsenv
 
