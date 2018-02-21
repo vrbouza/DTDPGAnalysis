@@ -32,7 +32,7 @@ process.load("RecoMuon.TrackingTools.MuonServiceProxy_cff")
 
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")  #DB v2, at least since GR_E_V42
 
-process.GlobalTag.globaltag = '92X_dataRun2_Prompt_v8'
+process.GlobalTag.globaltag = '94X_dataRun2_ReReco_EOY17_v2'
 
 # for the emulator
 process.load("L1TriggerConfig.DTTPGConfigProducers.L1DTTPGConfigFromDB_cff")
@@ -53,7 +53,7 @@ process.source = cms.Source("PoolSource",
   fileNames = cms.untracked.vstring
   (
 
-    '/store/express/Run2017F/ExpressPhysics/FEVT/Express-v1/000/306/121/00000/AA283EDA-C9C0-E711-9DCB-02163E0145AF.root',
+    '/store/data/Run2017F/SingleMuon/RAW-RECO/ZMu-17Nov2017-v1/00000/06FB9E1B-BEF1-E711-9122-0025905A608E.root',
 
   ),
   secondaryFileNames = cms.untracked.vstring(
