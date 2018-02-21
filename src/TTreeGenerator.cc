@@ -757,9 +757,8 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
 
     bool isTrackerArb = muon::isGoodMuon((*nmuon), muon::TrackerMuonArbitrated);
 
-    if (nmuon->pt()            < 5.0 && 
-	std::abs(nmuon->eta()) > 1.4 &&
-	!isTrackerArb)
+    if (std::abs(nmuon->eta()) > 1.4 &&
+	!(isTrackerArb && nmuon->isGlobalMuon()))
       continue;
 
     Mu_isMuGlobal.push_back(nmuon->isGlobalMuon()); 
