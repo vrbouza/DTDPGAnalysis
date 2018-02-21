@@ -755,12 +755,18 @@ void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muLi
 
     if(imuons >= recoMuSize_) break;
 
+    bool isTrackerArb = muon::isGoodMuon((*nmuon), muon::TrackerMuonArbitrated);
+
+    if (nmuon->pt()            < 5.0 && 
+	std::abs(nmuon->eta()) > 1.4 &&
+	!isTrackerArb)
+      continue;
+
     Mu_isMuGlobal.push_back(nmuon->isGlobalMuon()); 
     Mu_isMuTracker.push_back(nmuon->isTrackerMuon());
     Mu_isMuStandAlone.push_back(nmuon->isStandAloneMuon());
     Mu_isMuRPC.push_back(nmuon->isRPCMuon());
     
-    bool isTrackerArb = muon::isGoodMuon((*nmuon), muon::TrackerMuonArbitrated);
     Mu_isMuTrackerArb.push_back(isTrackerArb);
 
     Mu_numberOfChambers.push_back(nmuon->numberOfChambers());
