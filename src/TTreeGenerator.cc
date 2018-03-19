@@ -105,10 +105,9 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
 
 
   // get run configuration options
-  runOnRaw_        = pset.getParameter<bool>("runOnRaw");
-  runOnSimulation_ = pset.getParameter<bool>("runOnSimulation");
-  runOnSimulationWithDigis_ = pset.getParameter<bool>("runOnSimulationWithDigis");
-
+  runOnRaw_          = pset.getParameter<bool>("runOnRaw");
+  runOnSimulation_   = pset.getParameter<bool>("runOnSimulation");
+  runOnDigiSimLinks_ = pset.getParameter<bool>("runOnDigiSimLinks");
 
   //get parameters from the configuration file
   //names of the different event collections
@@ -177,13 +176,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   bmtfThInputTag_ = consumes<L1MuDTChambThContainer>(pset.getParameter<edm::InputTag>("bmtfInputThDigis"));
   bmtfOutputTag_ = consumes<l1t::RegionalMuonCandBxCollection>(pset.getParameter<edm::InputTag>("bmtfOutputDigis"));
 
-   OnlyBarrel_ = pset.getParameter<bool>("OnlyBarrel");
-
-//***  Moved to begin of function, needed for stablishing the digi collection to be used
-//  runOnRaw_        = pset.getParameter<bool>("runOnRaw");
-//  runOnSimulation_ = pset.getParameter<bool>("runOnSimulation");
-//  runOnSimulationWithDigis_ = pset.getParameter<bool>("runOnSimulationWithDigis");
-//  ****
+  OnlyBarrel_ = pset.getParameter<bool>("OnlyBarrel");
 
   localDTmuons_    = pset.getUntrackedParameter<bool>("localDTmuons",false);
 
@@ -250,9 +243,9 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   //retrieve the collections you are interested on in the event
   edm::Handle<DTDigiCollection> dtdigis;
   edm::Handle<MuonDigiCollection<DTLayerId, DTDigiSimLink>> dtdigisSim;
-  if(runOnRaw_ && !runOnSimulation_) event.getByToken(dtDigiToken_, dtdigis);
+  if(runOnRaw_ && !runOnDigiSimLinks_) event.getByToken(dtDigiToken_, dtdigis);
   else   // Added to cope with simulation including Digis
-    if(runOnSimulation_ && runOnSimulationWithDigis_) event.getByToken(dtDigiTokenSim_, dtdigisSim);
+    if(runOnSimulation_ && runOnDigiSimLinks_) event.getByToken(dtDigiTokenSim_, dtdigisSim);
 
 
   edm::Handle<DTRecSegment4DCollection> dtsegments4D;
@@ -364,9 +357,9 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   }
 
   //DIGIS
-  if(runOnRaw_ && !runOnSimulation_) fill_digi_variables(dtdigis);
+  if(runOnRaw_ && !runOnDigiSimLinks_) fill_digi_variables(dtdigis);
   else   // Added to cope with simulation including Digis
-    if(runOnSimulation_ && runOnSimulationWithDigis_) fill_digi_variablesSim(dtdigisSim);
+    if(runOnSimulation_ && runOnDigiSimLinks_) fill_digi_variablesSim(dtdigisSim);
 
 
   //DT SEGMENTS
