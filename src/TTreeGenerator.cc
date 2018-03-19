@@ -168,6 +168,9 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
 
   scalersSource_    = pset.getParameter<edm::InputTag>("scalersResults");
   scalersSourceToken_ = consumes<LumiScalersCollection>(edm::InputTag(scalersSource_));
+
+  puSummaryTag_      = pset.getParameter<edm::InputTag>("puSummaryTag");
+  puSummaryToken_    = consumes<std::vector<PileupSummaryInfo>>(edm::InputTag(puSummaryTag_));
        
   lumiInputTag_      = pset.getParameter<edm::InputTag>("lumiInputTag");
   lumiProducerToken_ = consumes<LumiDetails, edm::InLumi>(lumiInputTag_);
@@ -237,6 +240,25 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
        event.getByToken(scalersSourceToken_, lumiScalers);
        LumiScalersCollection::const_iterator lumiIt = lumiScalers->begin();
        lumiperblock = lumiIt->instantLumi();
+    }
+
+    //retrieve gen PU info in MC
+    if(runOnSimulation_)
+    {                      
+       edm::Handle<std::vector<PileupSummaryInfo> > puInfo;
+       event.getByToken(puSummaryToken_, puInfo);
+
+       for(const auto & puInfoBx : (*puInfo)) 
+       {
+	 int bx = puInfoBx.getBunchCrossing();
+	     
+	 if(bx == 0) 
+	 { 
+	   true_pileup   = puInfoBx.getTrueNumInteractions();
+	   actual_pileup = puInfoBx.getPU_NumInteractions();
+	   break;
+	 }
+       }  
     }
   }
 
@@ -1356,6 +1378,8 @@ void TTreeGenerator::beginJob()
   tree_->Branch("timestamp",&timestamp,"timestamp/l");
   tree_->Branch("bunchXing",&bunchXing,"bunchXing/I");
   tree_->Branch("orbitNum",&orbitNum,"orbitNum/L");
+  tree_->Branch("true_pileup",&true_pileup,"true_pileup/L");
+  tree_->Branch("actual_pileup",&actual_pileup,"actual_pileup/I");
 
   //Primary vertex
   tree_->Branch("PV_x",&PV_x,"PV_x/F");
@@ -1931,6 +1955,8 @@ void TTreeGenerator::initialize_Tree_variables()
   timestamp   = 0.;
   bunchXing   = 0;
   orbitNum    = 0;
+  true_pileup   = 0.;
+  actual_pileup = 0;
 
   PV_x = 0.;
   PV_y = 0.;
