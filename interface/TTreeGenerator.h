@@ -124,7 +124,7 @@ private:
 
   bool runOnRaw_;
   bool runOnSimulation_;
-  bool runOnSimulationWithDigis_; // To use when simulation includes also Digis
+  bool runOnDigiSimLinks_; // To use to read simulation digi sim links
 
   bool localDTmuons_;
   bool AnaTrackGlobalMu_;  // To avoid look to the global tracks (The muon collection: vector<reco::Muon> exit,  but not the global tracks:  vector<reco::Track> )
