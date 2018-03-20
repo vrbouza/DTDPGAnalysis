@@ -35,8 +35,9 @@
 
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
 
-#include "DataFormats/Luminosity/interface/LumiDetails.h"
-#include "DataFormats/Luminosity/interface/LumiSummary.h"
+// CB comment for now to avoid crash
+// #include "DataFormats/Luminosity/interface/LumiDetails.h"
+// #include "DataFormats/Luminosity/interface/LumiSummary.h"
 
 #include "CondFormats/L1TObjects/interface/L1GtTriggerMenu.h"
 #include "CondFormats/DataRecord/interface/L1GtTriggerMenuRcd.h"
@@ -172,8 +173,9 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   puSummaryTag_      = pset.getParameter<edm::InputTag>("puSummaryTag");
   puSummaryToken_    = consumes<std::vector<PileupSummaryInfo>>(edm::InputTag(puSummaryTag_));
        
-  lumiInputTag_      = pset.getParameter<edm::InputTag>("lumiInputTag");
-  lumiProducerToken_ = consumes<LumiDetails, edm::InLumi>(lumiInputTag_);
+  // CB comment for now to avoid crash
+  // lumiInputTag_      = pset.getParameter<edm::InputTag>("lumiInputTag");
+  // lumiProducerToken_ = consumes<LumiDetails, edm::InLumi>(lumiInputTag_);
   
   bmtfPhInputTag_ = consumes<L1MuDTChambPhContainer>(pset.getParameter<edm::InputTag>("bmtfInputPhDigis"));
   bmtfThInputTag_ = consumes<L1MuDTChambThContainer>(pset.getParameter<edm::InputTag>("bmtfInputThDigis"));
@@ -333,16 +335,17 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   bunchXing = event.eventAuxiliary().bunchCrossing();
   orbitNum = event.eventAuxiliary().orbitNumber();
 
+  // CB comment for now to avoid crash
   // it's filling nothing at the moment lumiDetails->isValid() return false (30/04/2016  M.C.F) 
-  if(!localDTmuons_ && !runOnSimulation_)  // Crashes when run in simulation no <LumiDetails> available         
-  {
-     edm::Handle<LumiDetails> lumiDetails;
-     event.getLuminosityBlock().getByToken(lumiProducerToken_, lumiDetails); 
-     if(lumiDetails->isValid()){
-       beam1Intensity = lumiDetails->lumiBeam1Intensity(bunchXing);
-       beam2Intensity = lumiDetails->lumiBeam2Intensity(bunchXing);
-     }
-  }
+  // if(!localDTmuons_ && !runOnSimulation_)  // Crashes when run in simulation no <LumiDetails> available         
+  // {
+  //    edm::Handle<LumiDetails> lumiDetails;
+  //    event.getLuminosityBlock().getByToken(lumiProducerToken_, lumiDetails); 
+  //    if(lumiDetails->isValid()){
+  //      beam1Intensity = lumiDetails->lumiBeam1Intensity(bunchXing);
+  //      beam2Intensity = lumiDetails->lumiBeam2Intensity(bunchXing);
+  //    }
+  // }
 
   //Primary vertex
   if(!localDTmuons_)     
@@ -1378,7 +1381,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("timestamp",&timestamp,"timestamp/l");
   tree_->Branch("bunchXing",&bunchXing,"bunchXing/I");
   tree_->Branch("orbitNum",&orbitNum,"orbitNum/L");
-  tree_->Branch("true_pileup",&true_pileup,"true_pileup/L");
+  tree_->Branch("true_pileup",&true_pileup,"true_pileup/F");
   tree_->Branch("actual_pileup",&actual_pileup,"actual_pileup/I");
 
   //Primary vertex
