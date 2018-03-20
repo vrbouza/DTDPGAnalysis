@@ -11,6 +11,9 @@ unsigned long long timestamp;
 int bunchXing;
 long orbitNum;
 
+Float_t true_pileup;
+Int_t actual_pileup;
+
 //primary vertex
 float PV_x;
 float PV_y;

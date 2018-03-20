@@ -8,6 +8,7 @@
 #include "UserCode/DTDPGAnalysis/interface/DefineTreeVariables.h"
 
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Framework/interface/ESHandle.h"
@@ -104,6 +105,8 @@ private:
   edm::EDGetTokenT<reco::VertexCollection> PrimaryVertexToken_ ;
   edm::InputTag beamSpotTag_;
   edm::EDGetTokenT<reco::BeamSpot> beamSpotToken_;
+  edm::InputTag puSummaryTag_;
+  edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puSummaryToken_;
   edm::InputTag scalersSource_;
   edm::EDGetTokenT<LumiScalersCollection> scalersSourceToken_;
   edm::InputTag triggerTag_;
