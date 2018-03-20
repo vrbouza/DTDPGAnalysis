@@ -113,9 +113,10 @@ private:
   edm::EDGetTokenT<edm::TriggerResults> triggerToken_ ;
   edm::InputTag triggerEventTag_;
   edm::EDGetTokenT<trigger::TriggerEvent> triggerEventToken_ ;
-  edm::InputTag lumiInputTag_;
-  edm::EDGetTokenT<LumiDetails> lumiProducerToken_ ;
-  edm::EDGetTokenT<LumiSummary> lumiSummaryToken_;
+  // CB comment for now to avoid crash
+  // edm::InputTag lumiInputTag_;
+  // edm::EDGetTokenT<LumiDetails> lumiProducerToken_ ;
+  // edm::EDGetTokenT<LumiSummary> lumiSummaryToken_;
   edm::EDGetTokenT<L1MuDTChambPhContainer> bmtfPhInputTag_;
   edm::EDGetTokenT<L1MuDTChambThContainer> bmtfThInputTag_;
   edm::EDGetTokenT<l1t::RegionalMuonCandBxCollection> bmtfOutputTag_; 
