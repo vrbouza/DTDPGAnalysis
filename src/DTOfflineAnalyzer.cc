@@ -22,6 +22,10 @@
  *       The trackingRecHit are in some cases DTRecHit1D but in others cases
  *       are DTRecSegment4D.The change allows to handle both
  *       situations transparently to the user (no extra configuation needed)
+ *
+ *    M.C Fouz. 18 Jan 2018
+ *       Including theDTDigiLabel independently of theDTLocalTriggerLabel 
+ *
  *******************************i*****************************************/
 
 
@@ -99,8 +103,9 @@ DTOfflineAnalyzer::DTOfflineAnalyzer(const ParameterSet& pset) : _ev(0){
   theRootFileName = pset.getUntrackedParameter<string>("rootFileName");
 
   // the name of the digis collection
+  theDTDigiLabel = pset.getParameter<string>("DTDigiLabel");
   theDTLocalTriggerLabel = pset.getParameter<string>("DTLocalTriggerLabel");
-  theDTLocalDigiToken_ = consumes<DTDigiCollection>(string(theDTLocalTriggerLabel));
+  theDTLocalDigiToken_ = consumes<DTDigiCollection>(string(theDTDigiLabel));
   theDTLocalTriggerToken_ = consumes<DTLocalTriggerCollection>(string(theDTLocalTriggerLabel));
 
   // the name of the 1D rec hits collection
@@ -788,12 +793,12 @@ void DTOfflineAnalyzer::analyzeDTHits(const Event & event,
                                const EventSetup& eventSetup){
 // ============================================================================================================
  
+
   char Whname[5][20]={"Wm2","Wm1","W0","W1","W2"};
 
  // Get the DT Geometry
   ESHandle<DTGeometry> dtGeom;
   eventSetup.get<MuonGeometryRecord>().get(dtGeom);
-
 
    // Get the digis from the event ======================
   Handle<DTDigiCollection> digis; 
@@ -801,6 +806,7 @@ void DTOfflineAnalyzer::analyzeDTHits(const Event & event,
   //event.getByLabel(theDTLocalTriggerLabel, digis); // Doesn't work after 75X
   event.getByToken(theDTLocalDigiToken_, digis);
   
+
  // Iterate through all digi collections ordered by LayerId  -------------------  
 
   DTDigiCollection::DigiRangeIterator dtLayerIt;
@@ -810,7 +816,7 @@ void DTOfflineAnalyzer::analyzeDTHits(const Event & event,
     const DTLayerId layerId = (*dtLayerIt).first;
 //    const DTSuperLayerId slId = layerId.superlayerId();
    int iw=2+layerId.wheel();
-   if(doWheel[iw])
+   if(doWheel[iw]) 
    {
     // Get the iterators over the digis associated with this LayerId
     const DTDigiCollection::Range& digiRange = (*dtLayerIt).second;
@@ -827,12 +833,10 @@ void DTOfflineAnalyzer::analyzeDTHits(const Event & event,
       hTitleDigi  << "hDigiXY_"  << Whname[iw] << "_S"  << se ;
       histo2d(hTitleDigi.str())->Fill( ix,iy ); // *** histos: hDigiXY_S1, etc... **********
 
-
 // the ttrigg used for this channel
    float ttrig = theSync->offset(wireId);
                                  
    float TDCtime = (*digi).time() - ttrig ; // plot the TDC times ttrigg-subtracted....
-
 
 //   if ( wireId.wheel() == 0 ) {  // YB0 =========================
         stringstream hTitle, hTitleSL, hTitleL, hTitleC; 
@@ -1676,11 +1680,15 @@ void DTOfflineAnalyzer::analyzeTrigger(const Event & event,
 //  float qual[]={-1,-1,-1,-1};  
   int qual[5][4][14];
  for (int iw=0; iw<5; iw++)   // Wheel -2 (0) to 2 (5)
+ {    // Version 10_0_3 complains when not having the { about the indentation
   for (int sec=1; sec<15; ++sec)   // section 1 to 14
-    for (int ist=0; ist<4; ++ist) { 
+  {
+   for (int ist=0; ist<4; ++ist) { 
       qual[iw][ist][sec-1] = -1;
       bxbest[iw][ist][sec-1] = -1;
-    }    
+   }   
+  }
+ }    
     
   
   DTLocalTriggerCollection::DigiRangeIterator chambIt;

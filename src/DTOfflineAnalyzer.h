@@ -10,7 +10,7 @@
  * \author : Stefano Lacaprara - INFN Padova <stefano.lacaprara@pd.infn.it>
  * $date   : 20/11/2006 16:51:04 CET $
  *
- * Modification:
+ * Last Modification 18/01/2018 for uROS (M.C Fouz)
  *
  */
 
@@ -105,6 +105,7 @@ class DTOfflineAnalyzer : public edm::EDAnalyzer {
     DQMStore *theDQMStore;
     //static std::string theAlgoName;
     int sects[5][12];
+    std::string theDTDigiLabel;
     std::string theDTLocalTriggerLabel;
     std::string theRecHits4DLabel;
     std::string theRecHits2DLabel;     

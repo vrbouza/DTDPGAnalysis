@@ -2,6 +2,7 @@
  *  See header file for a description of this class.
  *
  *  Update for reading TwinMux instead of DCC - February 2016
+ *  Update for new uROS (DataIntegrity plots) - February/March 2018
  *
  *  $Date: 2013/07/04 17:16:25 $
  *  \author M.C Fouz   
@@ -62,6 +63,7 @@ DTDPGCreateWheelSummary::DTDPGCreateWheelSummary(const edm::ParameterSet& ps){
   myParameters = ps;
   myRunNumber  = ps.getUntrackedParameter<int>("runNumber",0);
   ProcessDDUTrigger = ps.getUntrackedParameter<bool>("IncludeDDUTrigger","False");
+  ProcessDataIntegrity= ps.getUntrackedParameter<bool>("DataIntegrityHistos", "True");
 
   iHwMax=1;
   if(ProcessDDUTrigger)iHwMax=2;
@@ -922,150 +924,699 @@ void DTDPGCreateWheelSummary::endJob(){
 
   gStyle->SetOptStat(0);
   gStyle->SetOptFit(0);
-  //ROB Errors
-  TCanvas * ct101[5];
-  ct101[0]=new TCanvas("ct101_1","ROS Errors W-2",500,0,1150,950);
-  ct101[1]=new TCanvas("ct101_2","ROS Errors W-1",500,0,1150,950);
-  ct101[2]=new TCanvas("ct101_3","ROS Errors W0", 500,0,1150,950);
-  ct101[3]=new TCanvas("ct101_4","ROS Errors W1", 500,0,1150,950);
-  ct101[4]=new TCanvas("ct101_5","ROS Errors W2", 500,0,1150,950);
 
-  //FRC divide stations
-  TLine* lMB1 = new TLine (0., 6.,17., 6.);
-  TLine* lMB2 = new TLine (0.,12.,17.,12.);
-  TLine* lMB3 = new TLine (0.,18.,17.,18.);
-  TLine* lMB4 = new TLine (0.,24.,17.,24.);
-  lMB1->SetLineWidth(2.);
-  lMB2->SetLineWidth(2.);
-  lMB3->SetLineWidth(2.);
-  lMB4->SetLineWidth(2.);
-  TText* tMB1 = new  TText ( 7., 2.,"MB1");
-  TText* tMB2 = new  TText ( 8., 8.,"MB2");
-  TText* tMB3 = new  TText ( 9.,14.,"MB3");
-  TText* tMB4 = new  TText (10.,20.,"MB4");
-  tMB1->SetTextSize(0.06);
-  tMB2->SetTextSize(0.06);
-  tMB3->SetTextSize(0.06);
-  tMB4->SetTextSize(0.06);
+ if(ProcessDataIntegrity)
+ {
+   gStyle->SetPalette(1);// Going back to palette with red for many entries 
+  // ==================================================================
+  // ==       Summary uROS FED plots
+  // ==================================================================
+    int minFED=1368;
 
+  // ------------------------------------------------------------------
+  //    uROS Summary
+  // ------------------------------------------------------------------
+    TCanvas * ct71=new TCanvas("ct71","uROS Summary",50,50,1200,900);
 
-  for(int iw=-2;iw<2+1;iw++) // Loop on wheels
-  {
-   ct101[iw+2]->cd()->SetTopMargin(0.36);
-   ct101[iw+2]->cd()->SetLeftMargin(0.05);
-   ct101[iw+2]->cd()->SetRightMargin(0.05);
-   ct101[iw+2]->cd()->SetBottomMargin(0.20);
-   ct101[iw+2]->cd()->Divide(3,4,0.0001,0.0001);
+    ct71->cd()->SetTopMargin(0.36);
+    ct71->cd()->SetRightMargin(0.35);
+    ct71->cd()->SetBottomMargin(0.20);
+    ct71->cd()->SetFillColor(0);
+    ct71->cd()->SetBorderMode(0);
+    ct71->cd()->SetLineColor(4);
+      
+    sprintf(titlename,"uROS Summary (Normalized to Nb.Events in FED)");
+    title = new TPaveLabel(0.1,0.925,0.9,0.98,titlename);
+    title->SetFillColor(0);
+    title->SetTextColor(4);
+    title->Draw();
 
-   gStyle->SetOptTitle(1);
-   gStyle->SetPalette(1);
-  
-   gStyle->SetTitleH(0.1);
-   gStyle->SetTitleW(0.97);
-   gStyle->SetTitleH(0.1);
+    TPad *padUROSSummary = new TPad("paduROSSummary","",0.05,0.05,0.95,0.90);
+    padUROSSummary->Divide(2,2);
+    padUROSSummary->Draw();
 
-   gStyle->SetTitleBorderSize(2);
+    gStyle->SetOptTitle();
 
-   for(int isec=1;isec<13;isec++) // Loop on sectors 
-   {
-    ct101[iw+2]->cd(isec);
-    ct101[iw+2]->cd(isec)->SetBottomMargin(0.15);
-    ct101[iw+2]->cd(isec)->SetGrid();
+    //  txt file
+    char fSummaryErrName[80];   
+    sprintf(fSummaryErrName,"Run%d/Summary_uROSErrors.txt", myRunNumber );   
+    fSummaryErrList.open(fSummaryErrName);  
+    cout << fSummaryErrName << "Created" << endl; 
+
+    fSummaryErrList << "==========================================" << endl;
+    fSummaryErrList << "==  List of ROS Errors for Run " << myRunNumber << "   ==" << endl;
+    fSummaryErrList << "==========================================" << endl;
+       
+    //  html file
+    char fSummaryErrNameWeb[80];   
+    sprintf(fSummaryErrNameWeb,"Run%d/Summary_uROSErrors.html", myRunNumber );   
+    fSummaryErrListWeb.open(fSummaryErrNameWeb);  
+    cout << fSummaryErrNameWeb << "Created" << endl; 
+
+    // Header of html file
+     fSummaryErrListWeb << "<head>" << endl;
+     fSummaryErrListWeb << "<title> List of ROS Errors for Run " << myRunNumber << " </title>" << endl;
+     fSummaryErrListWeb << "</head>" << endl;
+
+     fSummaryErrListWeb << "<hr size=\"3px\" color=#000097>" << endl;
+     fSummaryErrListWeb << "<p><span style='font-size:16.0pt;color:#000097'><b>" << endl;
+     fSummaryErrListWeb << "&nbsp&nbsp&nbsp List of ROS Errors for Run " << myRunNumber << "</b></span></p>" << endl;
+     fSummaryErrListWeb << "<hr size=\"3px\" color=#000097>" << endl;
+
+    // End Header of html
  
-    stringstream dduID;
-    //if(isec<7)dduID << 770+2+iw;  // for 10 DDUs
-    //else dduID <<  775+2+iw;      // for 10 DDUs
-    dduID << 770+2+iw; // for 5 DDUs
-    stringstream ROSID; ROSID << isec;
+    for(int iFED=0; iFED<4; iFED++)
+    {// Lopp on FEDS
+       stringstream FEDId;
+       FEDId << minFED + iFED;
 
-    string histoName = myMainFolder + "00-DataIntegrity/FED" + dduID.str() + "/ROS" + ROSID.str() + "/FED" + dduID.str() + "_ROS" + ROSID.str() + "_ROSError";
-    TH1F *histoROSError = (TH1F*) myFile -> Get(histoName.c_str());
-    if(histoROSError) {
-     histoROSError->SetStats( 0 );
-     histoROSError->GetXaxis()->SetBinLabel(1,"#splitline{Link}{TimeOut}");
-     histoROSError->GetXaxis()->SetBinLabel(2,"#splitline{Ev.Id.}{Mis.}");
-     histoROSError->GetXaxis()->SetBinLabel(3,"#splitline{FIFO}{#splitline{almost}{full}}");
-     histoROSError->GetXaxis()->SetBinLabel(4,"#splitline{FIFO}{full}");
-     histoROSError->GetXaxis()->SetBinLabel(5,"#splitline{CEROS}{timeout}");
-     histoROSError->GetXaxis()->SetBinLabel(6,"#splitline{Max.}{wds}");
-     histoROSError->GetXaxis()->SetBinLabel(7,"#splitline{TDC}{#splitline{parity}{err}}");
-     histoROSError->GetXaxis()->SetBinLabel(8,"#splitline{BX ID}{Mis.}");
-     histoROSError->GetXaxis()->SetBinLabel(9,"#splitline{Ch}{blocked}");
-     histoROSError->GetXaxis()->SetBinLabel(10,"#splitline{Ev ID}{Mis.}");
-     histoROSError->GetXaxis()->SetBinLabel(11,"#splitline{CEROS}{blocked}");
-     histoROSError->GetXaxis()->SetBinLabel(12,"#splitline{TDC}{Fatal}");
-     histoROSError->GetXaxis()->SetBinLabel(13,"#splitline{TDC}{#splitline{FIFO}{Ov.}}");
-     histoROSError->GetXaxis()->SetBinLabel(14,"#splitline{L1}{#splitline{Buffer}{Ov.}}");
-     histoROSError->GetXaxis()->SetBinLabel(15,"#splitline{TDCL1A}{#splitline{FIFO}{Ov.}}");
-     histoROSError->GetXaxis()->SetBinLabel(16,"#splitline{TDC}{#splitline{hit}{err.}}");
-     histoROSError->GetXaxis()->SetBinLabel(17,"#splitline{TDC}{#splitline{hit}{rej.}}");
-     histoROSError->GetYaxis()->SetLabelSize(0.045);
-     histoROSError->GetXaxis()->SetLabelSize(0.04);
-     histoROSError->LabelsOption("h","X");
-     histoROSError->Draw("colz");
-     lMB1->Draw();
-     lMB2->Draw();
-     lMB3->Draw();
-     lMB4->Draw();
-     tMB1->Draw();
-     tMB2->Draw();
-     tMB3->Draw();
-     tMB4->Draw();
-    }
-   }// end loop on sectors
+       string histoName = myMainFolder + "00-DataIntegrity"+ "/FED" + FEDId.str() + "_uROSSummary"; 
+       TH2F * huROSSummary = (TH2F*) myFile -> Get(histoName.c_str());
+       padUROSSummary->cd(iFED+1);
+       padUROSSummary->cd(iFED+1)->SetGrid();
+       padUROSSummary->cd(iFED+1)->SetBottomMargin(0.25);
+       if(huROSSummary)
+       {
+         // Normalization to total number of events from EventLeght Plot   
+         string histoEventName = myMainFolder + "00-DataIntegrity"+ "/FED" + FEDId.str() +"/FED" + FEDId.str() + "_EventLenght";
+         TH1F * histoEvent = (TH1F*) myFile -> Get(histoEventName.c_str());
+         float numbEvents=0;
+         if(histoEvent)numbEvents=histoEvent->GetEntries();
+         else cout<< " EventLenght histo not found for FED = " << FEDId.str() << endl;
 
-   createGifFile("DataIntegrity_ROBErrors",ct101[iw+2],iw);
-  }// end loop on wheels
+         if(numbEvents>0)huROSSummary->Scale(1./numbEvents); 
+         huROSSummary->SetMaximum(1);
+         huROSSummary->SetStats( 0 );
+         huROSSummary->GetXaxis()->LabelsOption("v");
+         huROSSummary->Draw("colZ");
+         TLine* ltypes = new TLine (14., 1., 14., 13.);
+         ltypes->SetLineWidth(2.);
+         ltypes->Draw();
+
+         TText* textype1 = new  TText (4.5,8.8,"ROS");
+         textype1->SetTextSize(0.075);
+         textype1->SetTextColor(14);
+         textype1->Draw();
+
+         TText* textype2 = new  TText (14.5,8.8,"TDC");
+         textype2->SetTextSize(0.075);
+         textype2->SetTextColor(14);
+         textype2->Draw();
+
+         fSummaryErrList << "  FED: " << FEDId.str() << "... Tot entries= " << numbEvents << " (from eventlength plot)" << endl; 
+         fSummaryErrList << "         " << endl; 
+
+         fSummaryErrListWeb << "<p>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp  FED "  << FEDId.str() 
+                            << "&nbsp&nbsp Tot Entries = " << numbEvents << " (from EventLength plot)</p> " << endl;
+
+         // html table header
+         fSummaryErrListWeb << " <table class=MsoTableGrid border=1 cellspacing=0 cellpadding=0>" << endl; 
+         fSummaryErrListWeb << " <td width=75 style='border:solid windowtext 1.0pt'>" << endl; 
+         fSummaryErrListWeb << " <p align=center><b><span style='color:#7030A0'>" << endl; 
+         fSummaryErrListWeb << " #FED</span></b></p>" << endl; 
+         fSummaryErrListWeb << " </td>" << endl; 
+
+         fSummaryErrListWeb << " <td width=75 style='border:solid  windowtext 1.0pt'>" << endl; 
+         fSummaryErrListWeb << " <p align=center><b><span style='color:#7030A0'>" << endl; 
+         fSummaryErrListWeb << " uROS</span></b></p>" << endl; 
+         fSummaryErrListWeb << " </td>" << endl; 
+
+         fSummaryErrListWeb << " <td width=350 style='border:solid  windowtext 1.0pt'>" << endl; 
+         fSummaryErrListWeb << " <p align=center><b><span style='color:#7030A0'>" << endl; 
+         fSummaryErrListWeb << " ERROR Type</span></b></p>" << endl; 
+         fSummaryErrListWeb << " </td>" << endl; 
+
+         fSummaryErrListWeb << " <td width=100 style='border:solid  windowtext 1.0pt'>" << endl; 
+         fSummaryErrListWeb << " <p align=center><b><span style='color:#7030A0'>" << endl; 
+         fSummaryErrListWeb << " % events</span></b></p>" << endl; 
+         fSummaryErrListWeb << " </td>" << endl; 
+         fSummaryErrListWeb << " </tr>" << endl; 
+
+         // end html table header
+ 
+         //for(int ixb=1;ixb<20;ixb++)
+         for(int ixb=1;ixb<19;ixb++) // TDC hit rejection not needed to dump
+          for(int iyb=1;iyb<13;iyb++)
+          {
+            float xhval=huROSSummary->GetBinContent(ixb,iyb);
+            if(xhval>0)
+            {
+              string lhxerror=huROSSummary->GetXaxis()->GetBinLabel(ixb);
+              string lhyerror=huROSSummary->GetYaxis()->GetBinLabel(iyb);
+              fSummaryErrList << "  FED: " << FEDId.str() << "... " << lhyerror.c_str() <<  " :  " 
+                               << lhxerror.c_str() << ": present in " << 100*xhval   << "% of events" << endl;
+  
+              // html new table line 
+                stringstream TheColor;
+                if(100*xhval<1)TheColor << "#548235";   //Green 
+                else if(100*xhval<15)TheColor << "#0070C0"; // Blue
+                else if(100*xhval<50)TheColor << "FFC000";  // Orante
+                else TheColor << "#C00000";  //Red 
+
+                fSummaryErrListWeb << " <td width=75 style='border:solid windowtext 1.0pt'>" << endl;
+                fSummaryErrListWeb << " <p align=center><span style='color:" << TheColor.str() << "'>" << endl;
+                fSummaryErrListWeb << " " << FEDId.str() << "</span></p>" << endl;
+                fSummaryErrListWeb << " </td>" << endl;
+
+                fSummaryErrListWeb << " <td width=57 style='border:solid  windowtext 1.0pt'>" << endl;
+                fSummaryErrListWeb << " <p align=center><span style='color:" << TheColor.str() << "'>" << endl;
+                fSummaryErrListWeb << " " << lhyerror.c_str() << "</span></p>" << endl;
+                fSummaryErrListWeb << " </td>" << endl;
+
+                fSummaryErrListWeb << " <td width=350 style='border:solid  windowtext 1.0pt'>" << endl;
+                fSummaryErrListWeb << " <p><span style='color:" << TheColor.str() << "'>" << endl;
+                fSummaryErrListWeb << " &nbsp&nbsp " <<  lhxerror.c_str() << "</span></p>" << endl;
+                fSummaryErrListWeb << " </td>" << endl;
+
+                fSummaryErrListWeb << " <td width=85 style='border:solid  windowtext 1.0pt'>" << endl;
+                fSummaryErrListWeb << " <p><span style='color:" << TheColor.str() << "'>" << endl;
+                fSummaryErrListWeb << " &nbsp " << 100*xhval << "</span></p>" << endl;
+                fSummaryErrListWeb << " </td>" << endl;
+                fSummaryErrListWeb << " </tr>" << endl;
+              // END html new table line 
+            }
+          }
+        fSummaryErrListWeb << " </table>" << endl;
+       }
+       else
+       {
+         char errorMess[80];
+         sprintf(errorMess, " FED %d NO Present", minFED + iFED);  
+         //TText* tFedMis = new  TText (0.09,0.5,"FED Not present");
+         TText* tFedMis = new  TText (0.09,0.5,errorMess);
+         tFedMis->SetTextSize(0.08);
+         tFedMis->SetTextColor(4);
+         tFedMis->Draw();
+
+         fSummaryErrList << errorMess << endl;
+         fSummaryErrListWeb << "<p>&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp" << errorMess << "</p> " << endl;
+       }
+       fSummaryErrList << " ------  " << endl; 
+       fSummaryErrListWeb << " <hr  size=\"1px\" color=#900097>" << endl; 
+
+    }// END  Lopp on FEDS
+    createGifFile("DataIntegrity_uROSSummary",ct71);
+
+    fSummaryErrList.close();
+    fSummaryErrListWeb << "</html>" << endl; 
+    fSummaryErrListWeb.close();
+
+  /*  
+  // ------------------------------------------------------------------
+  //    uROS Status
+  // ------------------------------------------------------------------
+    TCanvas * ct72=new TCanvas("ct72","uROS STatus",50,50,1200,900);
+
+    ct72->cd()->SetTopMargin(0.36);
+    ct72->cd()->SetRightMargin(0.35);
+    ct72->cd()->SetBottomMargin(0.20);
+    ct72->cd()->SetFillColor(0);
+    ct72->cd()->SetBorderMode(0);
+    ct72->cd()->SetLineColor(4);
+      
+    sprintf(titlename,"uROS Status");
+    title = new TPaveLabel(0.1,0.925,0.9,0.98,titlename);
+    title->SetFillColor(0);
+    title->SetTextColor(4);
+    title->Draw();
+
+    TPad *padUROSStatus = new TPad("paduROSStatus","",0.05,0.05,0.95,0.90);
+    padUROSStatus->Divide(2,2);
+    padUROSStatus->Draw();
+
+    for(int iFED=0; iFED<4; iFED++)
+    {// Lopp on FEDS
+       stringstream FEDId;
+       FEDId << minFED + iFED;
+
+       string histoName = myMainFolder + "00-DataIntegrity"+ "/FED" + FEDId.str() +"/FED" + FEDId.str() + "_uROSStatus"; 
+       TH2F * huROSStatus = (TH2F*) myFile -> Get(histoName.c_str());
+       padUROSStatus->cd(iFED+1);
+       if(huROSStatus)
+       {
+         huROSStatus->SetStats( 0 );
+         huROSStatus->Draw("colZ");
+       }
+       else
+       {
+         char errorMess[80];
+         sprintf(errorMess, " FED %d NO Present", minFED + iFED);  
+         //TText* tFedMis = new  TText (0.09,0.5,"FED Not present");
+         TText* tFedMis = new  TText (0.09,0.5,errorMess);
+         tFedMis->SetTextSize(0.08);
+         tFedMis->SetTextColor(4);
+         tFedMis->Draw();
+       }
+    }// END  Lopp on FEDS
+    createGifFile("DataIntegrity_uROSStatus",ct72);
+  */  
 
 
-  TCanvas * ct102[5];
-  ct102[0]=new TCanvas("ct102_1","ROS EventLenght W-2",500,0,1150,950);
-  ct102[1]=new TCanvas("ct102_2","ROS EventLenght W-1",500,0,1150,950);
-  ct102[2]=new TCanvas("ct102_3","ROS EventLenght W0", 500,0,1150,950);
-  ct102[3]=new TCanvas("ct102_4","ROS EventLenght W1", 500,0,1150,950);
-  ct102[4]=new TCanvas("ct102_5","ROS EventLenght W2", 500,0,1150,950);
+  // ------------------------------------------------------------------
+  //    uROS BXId, uROSlist, EventLength,
+  // ------------------------------------------------------------------
+   
+    std::vector<TCanvas *> ct70;
 
-  for(int iw=-2;iw<2+1;iw++) // Loop on wheels
-  {
-   ct102[iw+2]->cd()->SetTopMargin(0.36);
-   ct102[iw+2]->cd()->SetLeftMargin(0.05);
-   ct102[iw+2]->cd()->SetRightMargin(0.05);
-   ct102[iw+2]->cd()->SetBottomMargin(0.20);
-   ct102[iw+2]->cd()->Divide(3,4,0.0001,0.0001);
+    TCanvas * ct73=new TCanvas("ct73","BXID",50,50,1200,900);
+    TCanvas * ct74=new TCanvas("ct74","uROSList",50,50,1200,900);
+    TCanvas * ct75=new TCanvas("ct75","EventLength",50,50,1200,900);
+    TCanvas * ct76=new TCanvas("ct76","FedAvgEvLengthvsLumi",50,50,1200,900);
+    //ct70[0]= ct71;
+    ct70.push_back(ct73);
+    ct70.push_back(ct74);
+    ct70.push_back(ct75);
+    ct70.push_back(ct76);
 
-   for(int isec=1;isec<13;isec++) // Loop on sectors 
-   {
-    ct102[iw+2]->cd(isec);
-    ct102[iw+2]->cd(isec)->SetLogy(1);
+    std::vector<string> typeHFED;
+    typeHFED.push_back("_BXID");
+    typeHFED.push_back("_uROSList");
+    typeHFED.push_back("_EventLenght");
+    typeHFED.push_back("_FEDAvgEvLenghtvsLumi");
 
-    gStyle->SetOptStat(111111);
-    gStyle->SetStatX(0.88);
-    gStyle->SetStatW(0.32);
-    //gStyle->SetStatY(0.98);
-    gStyle->SetStatY(0.88);
-    gStyle->SetStatH(0.40);
-
-    stringstream dduID;
-    //if(isec<7)dduID << 770+2+iw; // for 10 DDUs
-    //else dduID <<  775+2+iw;     // for 10 DDUs
-    dduID << 770+2+iw;   // for 5 DDUs
-    stringstream ROSID; ROSID << isec;
-
-    string histoName = myMainFolder + "00-DataIntegrity/FED" + dduID.str() + "/ROS" + ROSID.str() + "/FED" + dduID.str() + "_ROS" + ROSID.str() + "_ROSEventLenght";
-
-    TH1F *histoROSEL = (TH1F*) myFile -> Get(histoName.c_str());
-    if(histoROSEL) 
+    std::vector<TCanvas *>::const_iterator CanvIt  = ct70.begin();
+    std::vector<TCanvas *>::const_iterator CanvEnd = ct70.end();
+    for (; CanvIt != CanvEnd; ++CanvIt) 
     {
-     histoROSEL->GetYaxis()->SetLabelSize(0.07);
-     histoROSEL->GetXaxis()->SetLabelSize(0.07);
-     histoROSEL->Draw();
+      (*CanvIt)->cd()->SetTopMargin(0.36);
+      (*CanvIt)->cd()->SetRightMargin(0.35);
+      (*CanvIt)->cd()->SetBottomMargin(0.20);
+      (*CanvIt)->cd()->SetFillColor(0);
+      (*CanvIt)->cd()->SetBorderMode(0);
+      (*CanvIt)->cd()->SetLineColor(4);
     }
 
-   }// end loop on sectors
+    int CSize=ct70.end()-ct70.begin();
+    int TypSize=typeHFED.end()-typeHFED.begin();
 
-   createGifFile("ROBEventLength",ct102[iw+2],iw);
-   delete ct102[iw+2];
-  }// end loop on wheels
+    if(CSize != TypSize) 
+       cout << "[DTDPGCreateWheelSummary] DataIntegrity Plots: WARNING Number of canvas (= " << CSize 
+            <<") doesn't match with number of Histograms (= " << TypSize 
+            <<") types to be plot..." << endl;
+
+    string gifNameDI;
+    gifNameDI.append("DataIntegrity");
+    for(int itp=0; itp<TypSize; itp++)
+    {
+      ct70.at(itp)->cd();
+      string typeHFEDStr = typeHFED.at(itp);
+
+      title = new TPaveLabel(0.1,0.925,0.9,0.98,typeHFEDStr.c_str());
+      title->SetFillColor(0);
+      title->SetTextColor(4);
+      title->Draw();
+
+      TPad *pad1 = new TPad("pad1","",0.05,0.05,0.95,0.90);
+      pad1->Divide(2,2);
+      pad1->Draw();
+
+      if(typeHFEDStr=="_EventLenght") 
+      {
+        gStyle->SetOptStat(111111);
+        gStyle->SetStatX(0.88);
+        gStyle->SetStatW(0.32);
+        gStyle->SetStatY(0.90);
+        gStyle->SetStatH(0.40);
+      }
+      else
+        gStyle->SetOptStat(0);
+
+      for(int iFED=0; iFED<4; iFED++)
+      {// Lopp on FEDS
+         stringstream FEDId;
+         FEDId << minFED + iFED;
+
+         string histoName = myMainFolder + "00-DataIntegrity"+ "/FED" + FEDId.str() +"/FED" + FEDId.str() + typeHFEDStr.c_str(); 
+
+         TH1F * hHisto= (TH1F*) myFile -> Get(histoName.c_str());
+         pad1->cd(iFED+1);
+         if(typeHFEDStr=="_EventLenght") pad1->cd(iFED+1)->SetLogy();
+         if(hHisto)
+         {
+           hHisto->GetXaxis()->SetLabelSize(0.05);
+           hHisto->GetYaxis()->SetLabelSize(0.05);
+
+           if(typeHFEDStr!="_FEDAvgEvLenghtvsLumi")
+              hHisto->Draw();
+           else
+           { // To be included here the code for detecting "peaks" and "valleys" in LS groups 
+
+             TH1F * h21= (TH1F *)hHisto->Clone();
+             h21->Reset();
+
+             int nBins=hHisto->GetNbinsX();
+             float nMax1=hHisto->GetMaximum();
+
+             float xvalMean=0;
+             float xvalRMS=0;
+             float xvalCut=0;
+             std::vector <string> LumiOutValue ;
+             if(nBins>0)
+             {
+               float xval[nBins];
+
+               TH1F *h11= new TH1F("h11","h11",int(nMax1/4)+100, 0., nMax1+4*100);
+               for(int i=1;i<nBins+1;i++)
+               {
+                  xval[i-1]=hHisto->GetBinContent(i);
+                  if(xval[i-1]!=0) h11->Fill(xval[i-1]);
+               }
+
+               xvalMean= h11->GetMean();
+               xvalRMS= h11->GetRMS();
+               xvalCut=3*xvalRMS;
+
+               // Identifying LS with values out of range
+               for(int i=1;i<nBins+1;i++)
+               if(xval[i-1]>0)
+               {
+                  if(fabs(xvalMean-xval[i-1])>xvalCut)
+                  {
+                     h21->SetBinContent(i,xval[i-1]);
+                     LumiOutValue.push_back( h21->GetXaxis()->GetBinLabel(i));
+                  }
+               } 
+             }// end if nBins>0
+            int LSize= LumiOutValue.end()-LumiOutValue.begin();
+             
+            // DRAWING PLOT
+            hHisto->Draw();
+            // >> Band inside the Cut
+             TBox * bRange = new TBox(0,xvalMean-xvalCut,float(nBins),xvalMean+xvalCut);
+             bRange->SetFillColor(17);
+             bRange->SetLineColor(1);
+             bRange->SetLineWidth(2);
+             bRange->Draw();
+           // >> OverImposing plot marking the values out of range 
+             h21->SetLineColor(6);
+             h21->SetFillColor(6);
+             h21->Draw("same");
+             hHisto->Draw("same");
+
+           // >> Writting text information
+           // ===
+             string srang("Range");
+             TText * trangLabel = new TText(-25.0,xvalMean,srang.c_str());
+             trangLabel->SetTextSize(0.04);
+             trangLabel->SetTextColor(1);
+             trangLabel->Draw();
+           // ===
+             stringstream tAver;
+             tAver << "Average Event Length = " << xvalMean;
+             string stAver=tAver.str();
+             TText * tAverLabel = new TText(5.0,nMax1*0.35,stAver.c_str());
+             tAverLabel->SetTextSize(0.04);
+             tAverLabel->SetTextColor(4);
+             tAverLabel->Draw();
+           // ===
+             stringstream tAverOut;
+             tAverOut << "# Lumi groups out of range = " << LSize ;
+             string stAverOut=tAverOut.str();
+             TText * tAverOutLabel = new TText(5.0,nMax1*0.30,stAverOut.c_str());
+             tAverOutLabel->SetTextSize(0.04);
+             tAverOutLabel->SetTextColor(1);
+             tAverOutLabel->Draw();
+           // ===
+             for (int i=0; i<LSize; i++)
+             {
+               string Lval =  LumiOutValue.at(i) ;
+               cout<< i << " ..... " << Lval.c_str() <<endl;
+               TText * lumiLabel = new TText(float(nBins)+6,nMax1*(1-0.05*i),Lval.c_str());
+               lumiLabel->SetTextSize(0.030);
+               lumiLabel->SetTextColor(6);
+               lumiLabel->Draw();
+             }
+           }//END if(typeHFEDStr=="_FEDAvgEvLenghtvsLumi")
+         }
+         else
+         {
+            char errorMess[80];
+            sprintf(errorMess, " FED %d NO Present", minFED + iFED);  
+            //TText* tFedMis = new  TText (0.09,0.5,"FED Not present");
+            TText* tFedMis = new  TText (0.09,0.5,errorMess);
+            tFedMis->SetTextSize(0.08);
+            tFedMis->SetTextColor(4);
+            tFedMis->Draw();
+         }
+      }// END  Lopp on FEDS
+      string gifName = gifNameDI + typeHFEDStr.c_str(); 
+      createGifFile(gifName.c_str(), ct70.at(itp));
+    }// End of loop in types of histograms/number of gif files to be produced
+
+  // ------------------------------------------------------------------
+  //    uROS ERRORs 
+  // ------------------------------------------------------------------
+
+
+  //Labels to match new uROS with old ROS values, 
+  //     iFEDS 1-3    iFED 0 used for tests 
+    std::vector<string> LuROsvsROS[3] ;
+    // ROS1-4 
+    LuROsvsROS[0].push_back("Links 48-71   ROS1");
+    LuROsvsROS[0].push_back("Links 48-71   ROS2");
+    LuROsvsROS[0].push_back("Links 48-71   ROS3");
+    LuROsvsROS[0].push_back("Links 48-71   ROS4");
+    LuROsvsROS[0].push_back("Links 24-47   ROS1");
+    LuROsvsROS[0].push_back("Links 24-47   ROS2");
+    LuROsvsROS[0].push_back("Links 24-47   ROS3");
+    LuROsvsROS[0].push_back("Links 24-47   ROS4");
+    LuROsvsROS[0].push_back("Links  0-23   ROS1");
+    LuROsvsROS[0].push_back("Links  0-23   ROS2");
+    LuROsvsROS[0].push_back("Links  0-23   ROS3");
+    LuROsvsROS[0].push_back("Links  0-23   ROS4");
+
+    // ROS5-8 
+    LuROsvsROS[1].push_back("Links 48-71   ROS5");
+    LuROsvsROS[1].push_back("Links 48-71   ROS6");
+    LuROsvsROS[1].push_back("Links 48-71   ROS7");
+    LuROsvsROS[1].push_back("Links 48-71   ROS8");
+    LuROsvsROS[1].push_back("Links 24-47   ROS5");
+    LuROsvsROS[1].push_back("Links 24-47   ROS6");
+    LuROsvsROS[1].push_back("Links 24-47   ROS7");
+    LuROsvsROS[1].push_back("Links 24-47   ROS8");
+    LuROsvsROS[1].push_back("Links  0-23   ROS5");
+    LuROsvsROS[1].push_back("Links  0-23   ROS6");
+    LuROsvsROS[1].push_back("Links  0-23   ROS7");
+    LuROsvsROS[1].push_back("Links  0-23   ROS8");
+
+    // ROS9-12
+    LuROsvsROS[2].push_back("Links 48-71   ROS9 ");
+    LuROsvsROS[2].push_back("Links 48-71   ROS10");
+    LuROsvsROS[2].push_back("Links 48-71   ROS11");
+    LuROsvsROS[2].push_back("Links 48-71   ROS12");
+    LuROsvsROS[2].push_back("Links 24-47   ROS9 ");
+    LuROsvsROS[2].push_back("Links 24-47   ROS10");
+    LuROsvsROS[2].push_back("Links 24-47   ROS11");
+    LuROsvsROS[2].push_back("Links 24-47   ROS12");
+    LuROsvsROS[2].push_back("Links  0-23   ROS9 ");
+    LuROsvsROS[2].push_back("Links  0-23   ROS10");
+    LuROsvsROS[2].push_back("Links  0-23   ROS11");
+    LuROsvsROS[2].push_back("Links  0-23   ROS12");
+
+   for(int iFED=0; iFED<4; iFED++)
+   {// Lopp on FEDS
+     stringstream FEDId;
+     FEDId << minFED + iFED;
+
+     // Normalization to total number of events from EventLeght Plot   
+     string histoEventName = myMainFolder + "00-DataIntegrity"+ "/FED" + FEDId.str() +"/FED" + FEDId.str() + "_EventLenght";
+     TH1F * histoEvent = (TH1F*) myFile -> Get(histoEventName.c_str());
+     float numbEvents=0;
+     if(histoEvent)numbEvents=histoEvent->GetEntries();
+     else cout<< " EventLenght histo not found for FED = " << FEDId.str() << endl;
+ 
+     TCanvas * CuROSErrors = new TCanvas("CuROSErrors", "",50,50,1200,900);
+
+     sprintf(titlename,"FED %d ROS Error  (Normalized to Nb.Events in FED)",minFED + iFED);
+     title = new TPaveLabel(0.1,0.925,0.9,0.98,titlename);
+     title->SetFillColor(0);
+     title->SetTextColor(4);
+     title->Draw();
+
+     TPad * PuROSErrors= new TPad("PuROSErrors","",0.01,0.01,0.99,0.91);
+     PuROSErrors->SetLeftMargin(0.13);
+     PuROSErrors->SetBottomMargin(0.25);
+     PuROSErrors->Divide(4,3,0,0);
+     PuROSErrors->Draw();
+
+     for(int iROS=1; iROS<13; iROS++)
+     { 
+       int PresentROS=0;
+       int ipad;
+
+       stringstream ROSId;
+       ROSId << iROS;
+
+       for(int iERR=0; iERR<3; iERR++)
+       { 
+        stringstream ERRId;
+        ERRId << iERR;
+
+        string histoName = myMainFolder + "00-DataIntegrity"
+                         + "/FED" + FEDId.str()  + "/uROS" + ROSId.str() 
+                         + "/FED" + FEDId.str()  + "_uROS" + ROSId.str() +  "_uROSError" + ERRId.str(); 
+        TH2F * huROSError = (TH2F*) myFile ->Get(histoName.c_str());
+
+        PuROSErrors->cd(iROS);
+
+        if(fmod(iROS,4))
+          ipad=fmod(iROS,4)+(8-iERR*4);
+        else
+          ipad=4+(8-iERR*4);
+
+        PuROSErrors->cd(ipad)->SetGrid();
+        if(huROSError)
+        {
+          PresentROS++;
+
+          if(numbEvents>0)huROSError->Scale(1./numbEvents); 
+          /* Doesn't work
+          if(huROSError->GetEntries()==0) 
+          {
+            huROSError->SetMaximum(1.);  
+            huROSError->SetMinimum(0.);
+            huROSError->GetZaxis()->SetRangeUser(0.0,1.0);  
+          }
+          */
+
+          huROSError->SetMaximum(1.); 
+          huROSError->GetZaxis()->SetRangeUser(0.0, 1.0);
+
+          huROSError->GetXaxis()->SetLabelSize(0.055);
+          huROSError->GetYaxis()->SetLabelSize(0.060);
+          huROSError->GetZaxis()->SetLabelSize(0.06);
+          huROSError->GetXaxis()->LabelsOption("v");
+
+          if(ipad==9)
+          {
+            huROSError->GetXaxis()->SetLabelSize(0.05);
+            huROSError->GetYaxis()->SetLabelSize(0.045);
+          }
+
+          huROSError->SetStats( 0 );
+          huROSError->SetTitle(0);
+
+          if(!fmod(ipad,4))
+          {
+            PuROSErrors->cd(ipad)->SetRightMargin(0.13);
+            if(huROSError->GetEntries()==0) 
+            {//If there are not entries the Z palette is not drawing when using ColZ
+             //and a palette can't be create by hand, the palette is create when the
+             //histogram is ploted.
+             // This trick works!!! and the problem is solved
+
+                // Works interactively but it doesn't compile
+                // strangely in the constructor of TPaleteAxis the histogram is TH1!!!!
+                /*
+                   huROSError->Draw("lego"); 
+                   TPaletteAxis *p1 = new TPaletteAxis(11.1,0,11.7,24.0,huROSError);
+                */
+                // Using other trick....
+                TH2F * h2p=new TH2F("h2p","h2p",2,0.,2.,2,0.,2.);
+                h2p->SetBinContent(1,1,1.);
+                if(ipad>9) h2p->GetZaxis()->SetLabelSize(0.055);
+                else h2p->GetZaxis()->SetLabelSize(0.06);
+                h2p->Draw("colZ");
+                gPad->Update();
+                TPaletteAxis *pl1 = (TPaletteAxis*)h2p->GetListOfFunctions()->FindObject("palette");
+
+                pl1->SetLabelSize(0.055);
+                huROSError->Draw("colZ"); 
+                pl1->Draw();
+            }
+            else huROSError->Draw("colZ"); 
+          }
+          else huROSError->Draw("colZ"); 
+
+
+          char texTit[10]; sprintf(texTit,"ROS %d", iROS);
+          TText * thTit = new TText (0.20,22.0,texTit);
+
+          thTit->SetTextSize(0.07);
+          if(ipad==9) thTit->SetTextSize(0.05);
+          else if(ipad>9) thTit->SetTextSize(0.06);
+
+          thTit->SetTextColor(4);
+          thTit->Draw(); 
+
+          if(iFED>0) // FED0 used for tests 
+          {
+            int ipl=0;
+            if(iROS>4)ipl=1;
+            if(iROS>8)ipl=2;
+            //string LabelMAP = LuROsvsROS[iFED-1].at(iROS-1);
+            string LabelMAP = LuROsvsROS[ipl].at(ipad-1);
+            TText * thLabel = new TText(2.0,20.0,LabelMAP.c_str());
+            thLabel->SetTextSize(0.07);
+            if(ipad==9)thLabel->SetTextSize(0.05);
+            else if(ipad>9)thLabel->SetTextSize(0.06);
+            thLabel->SetTextColor(12);
+            thLabel->Draw(); 
+          }
+          
+          /*
+          CuROSErrors->Update();
+          TPaletteAxis *palette = (TPaletteAxis*)huROSError->GetListOfFunctions()->FindObject("palette");
+          if(palette)
+          {
+            //
+            palette->SetX1NDC(0.9);
+            palette->SetX2NDC(0.99);
+            palette->SetY1NDC(0.1);
+            palette->SetY2NDC(1.8);
+           
+            palette->SetLabelColor(1);
+            palette->SetLabelFont(42);
+            palette->SetLabelOffset(0.005);
+            palette->SetTitleOffset(1);
+            palette->SetTitleSize(0.035);
+
+             palette->SetX1NDC(0.4);
+             //
+            palette->SetLabelSize(0.03);
+
+            CuROSErrors->Modified();
+            CuROSErrors->Update();
+          }
+          */
+        }
+        else
+        {
+          char errorMess[80];
+          sprintf(errorMess, " ROS %d NO Present", minFED + iFED);  
+          //TText* tFedMis = new  TText (0.09,0.5,"FED Not present");
+          TText* tROSMis = new  TText (0.09,0.5,errorMess);
+          tROSMis->SetTextSize(0.08);
+          tROSMis->SetTextColor(4);
+          tROSMis->Draw();
+        }
+      }// End loop on error type 
+
+      if(!fmod(iROS,4))
+      {
+        if(PresentROS>0)
+        { // To avoid empty plots for FED not present (1368 miss most of time)
+          string gifNameDI;
+          gifNameDI.append("DataIntegrity");
+          
+          stringstream gifNumber;
+          gifNumber << "ROS_" << iROS-3 << "to" << iROS;
+          string gifName = gifNameDI + "_FED" + FEDId.str() + "_uROSError_" + gifNumber.str() ; 
+          createGifFile(gifName,CuROSErrors);
+        
+          CuROSErrors->Update();
+        }
+        
+        PresentROS=0;
+        for(int ip=1; ip<13;ip++) PuROSErrors->cd(ipad)->Clear();
+      }
+
+     }// END  Lopp on ROS
+    delete CuROSErrors;
+   }// END  Lopp on FEDS
+
+ } // END if(ProcessDataIntegrity)
+         
 
 
 
@@ -1746,299 +2297,6 @@ void DTDPGCreateWheelSummary::endJob(){
   gStyle->SetOptTitle(0);
 
 
-  // >>>>>>>>>>>>>>>>   EVENT LENGTH        <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  
-  // Summary histos with the event length of each DDU
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-  TCanvas * ct6=new TCanvas("ct6","DDU EventLength",500,0,900,950);
-  ct6->SetTopMargin(0.36);
-  ct6->SetLeftMargin(0.05);
-  ct6->SetRightMargin(0.05);
-  ct6->SetBottomMargin(0.20);
-  ct6->SetFillColor(0);
-  //ct6->Divide(2,5,0.,0.); // For 10 DDUs
-  ct6->Divide(1,5,0.,0.); // For 5 DDUs
-
-
-  sprintf(titlename,"Event Length");
-  title = new TPaveLabel(0.1,0.945,0.9,0.98,titlename);
-  title->SetFillColor(0);
-  title->SetTextColor(4);
-  title->Draw();
-
-  gStyle->SetOptStat(111111);
-  gStyle->SetStatX(0.88);
-  gStyle->SetStatW(0.32);
-  gStyle->SetStatY(0.98);
-  gStyle->SetStatH(0.40);
-
-  for(int iw=0;iw<5;iw++)
-    {
-      stringstream dduID; dduID << wheelToDDU(iw-2) ; //  
-      string histoNameEL = myMainFolder + "00-DataIntegrity/FED" + dduID.str() +  "/FED" + dduID.str()  + "_EventLenght";
-      TH2F * EvLength  = (TH2F*) myFile -> Get(histoNameEL.c_str());
-      
-      if(EvLength==NULL)LogVerbatim("DTDPGSummary") << "[DTDPGCreateWheelSummary]: Histo = " << histoNameEL.c_str() << " not found" << endl;
-      else
-	{
-          //ct6->cd(iw*2+1);                  // for 10 DDUS
-          //ct6->cd(iw*2+1)->SetLogy(1);      // for 10 DDUS
-          //ct6->cd(iw*2+1)->SetFillColor(0); // for 10 DDUS
-          ct6->cd(iw+1);                  // for 5 DDUS
-          ct6->cd(iw+1)->SetLogy(1);      // for 5 DDUS
-          ct6->cd(iw+1)->SetFillColor(0); // for 5 DDUS
-          EvLength->GetXaxis()->SetLabelSize(0.08);
-          EvLength->GetYaxis()->SetLabelSize(0.08);
-          EvLength->SetLineColor(1);
-
-          EvLength->Draw();
-
-          //sprintf(titlename,"Wheel %d  S1-S6",iw-2);  // for 10 DDUs
-          sprintf(titlename,"Wheel %d  ",iw-2);  // for 5 DDUs
-          TPaveLabel* WheelName = new TPaveLabel(0.05,0.84,0.40,0.98,titlename,"NDC");
-          WheelName->SetFillColor(0);
-          WheelName->SetTextColor(4);
-          WheelName->Draw();
-
-	}
-
-      // Uncomment next for 10 DDUs
-    /*
-      stringstream dduID2; dduID2 << wheelToDDU(iw-2)+5 ; //  
-      string histoNameEL2 = myMainFolder + "00-DataIntegrity/FED" + dduID2.str() +  "/FED" + dduID2.str()  + "_EventLenght";
-      TH2F * EvLength2  = (TH2F*) myFile -> Get(histoNameEL2.c_str());
-      
-      if(EvLength2==NULL)LogVerbatim("DTDPGSummary") << "[DTDPGCreateWheelSummary]: Histo = " << histoNameEL2.c_str() << " not found" << endl;
-      else
-	{
-          ct6->cd(iw*2+2);
-          ct6->cd(iw*2+2)->SetLogy(1);
-          ct6->cd(iw*2+2)->SetFillColor(0);
-          EvLength2->GetXaxis()->SetLabelSize(0.08);
-          EvLength2->GetYaxis()->SetLabelSize(0.08);
-
-          EvLength2->Draw();
-
-          sprintf(titlename,"Wheel %d  S7-S12",iw-2);
-          TPaveLabel* WheelName = new TPaveLabel(0.05,0.84,0.40,0.98,titlename,"NDC");
-          WheelName->SetFillColor(0);
-          WheelName->SetTextColor(4);
-          WheelName->Draw();
-	}
-    */
-
-    }
-           
-  createGifFile("EventLength",ct6);
-
-
-  // >>>>>>>>>>>>>>>>   DATA INTEGRITY      <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  
-  // Summary histos with the data integrity of each DDU
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  gStyle->SetOptStat(10);
-
-  TCanvas * ct7[2];
-  ct7[0]=new TCanvas("ct7_a","DDU Data Integrity",500,0,1150,950);
-  ct7[1]=new TCanvas("ct7_b","DDU Data Integrity",500,0,1150,950);
-  //for(int i=0;i<2;i++) // Loop for 10 DDUs, Uncomment this and createGifFile DataIntegrity_b" if 10DDU
-  for(int i=0;i<1;i++) // Not loop need for 5 DDU, mantained for simplicity and in case we need to comeback to 10DDU 
-  {
-   ct7[i]->SetTopMargin(0.36);
-   ct7[i]->SetLeftMargin(0.05);
-   ct7[i]->SetRightMargin(0.05);
-   ct7[i]->SetBottomMargin(0.20);
-   ct7[i]->Divide(3,6,0.0001,0.0001);
-  
-   gStyle->SetOptTitle(1);
-   gStyle->SetPalette(1);
-  
-   gStyle->SetTitleH(0.1);
-   gStyle->SetTitleW(0.97);
-   gStyle->SetTitleH(0.1);
-   gStyle->SetStatX(0.99);
-   gStyle->SetStatW(0.29);
-   gStyle->SetStatY(0.88);
-   gStyle->SetStatH(0.30);
-  
-  
-   for(int iw=0;iw<5;iw++)
-     {
-       stringstream dduID; dduID << wheelToDDU(iw-2)+i*5;  
-       string histoNameInt = myMainFolder + "00-DataIntegrity/FED" + dduID.str() + "/FED" + dduID.str() + "_TTSValues";
-       TH2F * DDUInfo    = (TH2F*) myFile -> Get(histoNameInt.c_str());
-       histoNameInt = myMainFolder + "00-DataIntegrity/FED" + dduID.str() + "/FED" + dduID.str() + "_ROSStatus";
-       TH2F * RosStatus  = (TH2F*) myFile -> Get(histoNameInt.c_str());
-       histoNameInt = myMainFolder + "00-DataIntegrity"+ "/FED" + dduID.str() + "_ROSSummary"; 
-       TH2F * RosSummary = (TH2F*) myFile -> Get(histoNameInt.c_str());
-  
-       if(DDUInfo)
-       {
-         ct7[i]->cd(iw*3+1);
-         DDUInfo->GetXaxis()->SetBinLabel(1,"disc.");
-         DDUInfo->GetXaxis()->SetBinLabel(2,"overfl");
-         DDUInfo->GetXaxis()->SetBinLabel(3,"out sync");
-         DDUInfo->GetXaxis()->SetBinLabel(4,"busy");
-         DDUInfo->GetXaxis()->SetBinLabel(5,"ready");
-         DDUInfo->GetXaxis()->SetBinLabel(6,"error");
-         DDUInfo->GetXaxis()->SetBinLabel(7,"disc.");
-  
-         DDUInfo->GetYaxis()->SetLabelSize(0.08);
-         DDUInfo->GetXaxis()->SetLabelSize(0.08);
-         DDUInfo->Draw();
-  
-         sprintf(titlename,"Wheel %d",iw-2);
-         TPaveLabel* WheelName = new TPaveLabel(0.10,0.70,0.40,0.88,titlename,"NDC");
-         WheelName->Draw();
-  
-       }
-       if(RosStatus)
-       {
-         ct7[i]->cd(iw*3+2);
-         ct7[i]->cd(iw*3+2)->SetBottomMargin(0.15);
-         ct7[i]->cd(iw*3+2)->SetGrid();
-  
-         RosStatus->SetStats(0);
-         RosStatus->GetXaxis()->SetBinLabel(1,"#splitline{ch.}{enable}");
-         RosStatus->GetXaxis()->SetBinLabel(2,"#splitline{time}{out}");
-         RosStatus->GetXaxis()->SetBinLabel(3,"#splitline{trailer}{lost}");
-         RosStatus->GetXaxis()->SetBinLabel(4,"#splitline{fiber}{lost}");
-         RosStatus->GetXaxis()->SetBinLabel(5,"#splitline{prop.}{err.}");
-         RosStatus->GetXaxis()->SetBinLabel(6,"#splitline{patt.}{err.}");
-         RosStatus->GetXaxis()->SetBinLabel(7,"#splitline{sign.}{lost}");
-         RosStatus->GetXaxis()->SetBinLabel(8,"#splitline{ROS }{err.}");
-         RosStatus->GetXaxis()->SetBinLabel(9,"#splitline{ROS }{in ev.}");
-         RosStatus->GetXaxis()->SetBinLabel(10,"#splitline{Miss }{ev.}");
-         RosStatus->GetXaxis()->SetBinLabel(11,"#splitline{Ev ID}{Miss}");
-         RosStatus->GetXaxis()->SetBinLabel(12,"#splitline{BX}{Miss}");
-  
-         //RosStatus->LabelsOption("h","X");
-         RosStatus->GetYaxis()->SetLabelSize(0.08);
-         RosStatus->GetXaxis()->SetLabelSize(0.07);
-         RosStatus->Draw("colz");
-       }
-       if(RosSummary)
-       {
-         ct7[i]->cd(iw*3+3);
-	 ct7[i]->cd(iw*3+3)->SetGrid();
-
-  
-         RosSummary->SetStats(0);
-         /*
-         RosSummary->GetXaxis()->SetBinLabel(1,"#splitline{Link}{TimeOut}");
-         RosSummary->GetXaxis()->SetBinLabel(2,"#splitline{Ev.Id.}{Mis.}");
-         RosSummary->GetXaxis()->SetBinLabel(3,"#splitline{FIFO}{#splitline{almost}{full}}");
-         RosSummary->GetXaxis()->SetBinLabel(4,"#splitline{FIFO}{full}");
-         RosSummary->GetXaxis()->SetBinLabel(5,"#splitline{Ceros}{Timeout}");
-         RosSummary->GetXaxis()->SetBinLabel(6,"#splitline{Max.}{wds}");
-         RosSummary->GetXaxis()->SetBinLabel(7,"#splitline{L1A}{FF}");
-         //RosSummary->GetXaxis()->SetBinLabel(8,"#splitline{PC}{#splitline{from}{TDC}}");
-         RosSummary->GetXaxis()->SetBinLabel(8,"#splitline{TDC}{#splitline{parity}{err.}}");
-  
-         RosSummary->GetXaxis()->SetBinLabel(9,"#splitline{BX ID}{Mis.}");
-         RosSummary->GetXaxis()->SetBinLabel(10,"TXP");
-  
-         //RosSummary->GetXaxis()->SetBinLabel(11,"#splitline{TDC}{Fatal}");
-         //RosSummary->GetXaxis()->SetBinLabel(12,"#splitline{TDC}{#splitline{FIFO}{Ov.}}");
-         //RosSummary->GetXaxis()->SetBinLabel(13,"#splitline{L1}{#splitline{Buffer}{Ov.}}");
-  
-         RosSummary->GetXaxis()->SetBinLabel(11,"#splitline{L1A}{#splitline{almost}{full}}");
-         RosSummary->GetXaxis()->SetBinLabel(12,"#splitline{Ch}{blocked}");
-         RosSummary->GetXaxis()->SetBinLabel(13,"#splitline{Ev.}{#splitline{Id.}{Mis.}}");
-  
-         RosSummary->GetXaxis()->SetBinLabel(14,"#splitline{CEROS}{blocked}");
-         RosSummary->GetXaxis()->SetBinLabel(15,"#splitline{TDC}{Fatal}");
-         RosSummary->GetXaxis()->SetBinLabel(16,"#splitline{TDC}{#splitline{FIFO}{Ov.}}");
-         RosSummary->GetXaxis()->SetBinLabel(17,"#splitline{L1}{#splitline{Buffer}{Ov.}}");
-         RosSummary->GetXaxis()->SetBinLabel(18,"#splitline{L1A}{#splitline{FIFO}{Ov.}}");
-         RosSummary->GetXaxis()->SetBinLabel(19,"#splitline{TDC}{#splitline{hit}{err.}}");
-         RosSummary->GetXaxis()->SetBinLabel(20,"#splitline{TDC}{#splitline{hit}{rej.}}");
-         //RosSummary->LabelsOption("h","X");
-  
-         RosSummary->GetYaxis()->SetLabelSize(0.08);
-         RosSummary->GetXaxis()->SetLabelSize(0.04);
-         */
-         RosSummary->GetXaxis()->SetBinLabel(1, "A");
-         RosSummary->GetXaxis()->SetBinLabel(2, "B");
-         RosSummary->GetXaxis()->SetBinLabel(3, "C");
-         RosSummary->GetXaxis()->SetBinLabel(4, "D");
-         RosSummary->GetXaxis()->SetBinLabel(5, "E");
-         RosSummary->GetXaxis()->SetBinLabel(6, "F");
-         RosSummary->GetXaxis()->SetBinLabel(7, "G");
-         RosSummary->GetXaxis()->SetBinLabel(8, "H");
-         RosSummary->GetXaxis()->SetBinLabel(9, "I");
-         RosSummary->GetXaxis()->SetBinLabel(10,"J");
-         RosSummary->GetXaxis()->SetBinLabel(11,"K");
-         RosSummary->GetXaxis()->SetBinLabel(12,"L");
-         RosSummary->GetXaxis()->SetBinLabel(13,"M");
-         RosSummary->GetXaxis()->SetBinLabel(14,"N");
-         RosSummary->GetXaxis()->SetBinLabel(15,"O");
-         RosSummary->GetXaxis()->SetBinLabel(16,"P");
-         RosSummary->GetXaxis()->SetBinLabel(17,"Q");
-         RosSummary->GetXaxis()->SetBinLabel(18,"R");
-         RosSummary->GetXaxis()->SetBinLabel(19,"S");
-         RosSummary->GetXaxis()->SetBinLabel(20,"T");
-  
-         RosSummary->GetYaxis()->SetLabelSize(0.08);
-         RosSummary->GetXaxis()->SetLabelSize(0.11);
-         RosSummary->Draw("colz");
-       }
-     }
-  
-     ct7[i]->cd(18);
-     TText L1;
-     L1.SetTextSize(0.09);
-     L1.SetTextColor(2);
-     L1.DrawText(0.02,0.91,"A = "); 
-     L1.DrawText(0.02,0.81,"B = "); 
-     L1.DrawText(0.02,0.71,"C = "); 
-     L1.DrawText(0.02,0.61,"D = "); 
-     L1.DrawText(0.02,0.51,"E = "); 
-     L1.DrawText(0.02,0.41,"F = "); 
-     L1.DrawText(0.02,0.31,"G = "); 
-     L1.DrawText(0.02,0.21,"H = "); 
-     L1.DrawText(0.02,0.11,"I = "); 
-     L1.DrawText(0.02,0.01,"J = "); 
-                                 
-     L1.DrawText(0.50,0.91,"K = "); 
-     L1.DrawText(0.50,0.81,"L = "); 
-     L1.DrawText(0.50,0.71,"M = "); 
-     L1.DrawText(0.50,0.61,"N = "); 
-     L1.DrawText(0.50,0.51,"O = "); 
-     L1.DrawText(0.50,0.41,"P = "); 
-     L1.DrawText(0.50,0.31,"Q = "); 
-     L1.DrawText(0.50,0.21,"R = "); 
-     L1.DrawText(0.50,0.11,"S = "); 
-     L1.DrawText(0.50,0.01,"T = "); 
-       
-     TText L2;
-     L2.SetTextSize(0.09);
-     L2.SetTextColor(4);
-     L2.DrawText(0.07,0.91," Link TimeOut");
-     L2.DrawText(0.07,0.81," Ev.Id. Missmatch");
-     L2.DrawText(0.07,0.71," FIFO almost full");
-     L2.DrawText(0.07,0.61," FIFO  full");
-     L2.DrawText(0.07,0.51," Ceros TimeOut");
-     L2.DrawText(0.07,0.41," Max.  wds");
-     L2.DrawText(0.07,0.31," L1A  FF");
-     L2.DrawText(0.07,0.21," TDC parity error");
-     L2.DrawText(0.07,0.11," BX ID Missmatch");
-     L2.DrawText(0.07,0.01," TXP");
-  
-     L2.DrawText(0.55,0.91," L1A almost full");
-     L2.DrawText(0.55,0.81," Channel blocked");
-     L2.DrawText(0.55,0.71," Event Id. Missmatch");
-     L2.DrawText(0.55,0.61," CEROS  blocked");
-     L2.DrawText(0.55,0.51," TDC Fatal");
-     L2.DrawText(0.55,0.41," TDC FIFO Overflow");
-     L2.DrawText(0.55,0.31," L1  Buffer Overflow");
-     L2.DrawText(0.55,0.21," L1A FIFO Overflow");
-     L2.DrawText(0.55,0.11," TDC hit error");  
-     L2.DrawText(0.55,0.01," TDC hit rej.");
-   
-   if(i==0)createGifFile("DataIntegrity_a",ct7[i]);
-//   if(i==1)createGifFile("DataIntegrity_b",ct7[i]);
-  } 
-
 // ==========================================================================================================
  char Whname[5][20]={"Wm2","Wm1","W0","W1","W2"};
 
@@ -2531,6 +2789,9 @@ void DTDPGCreateWheelSummary::endJob(){
  TH1F *QualBestTMMBBottom[5][4];
  TH1F *QualBestTMMBVertical[5][4];
 
+ gStyle->SetOptStat(10);
+ gStyle->SetOptTitle(1);
+
  for (int iw=0; iw<5;iw++)
   for (int ins=1; ins<13;ins++)
    for(int ic=1;ic<5;ic++){
@@ -2548,10 +2809,10 @@ void DTDPGCreateWheelSummary::endJob(){
 
     if(theHisto !=NULL) // Protecting in case the histo doesn't exist 
     {
-
      if(ins==1)
      {
-        stringstream hname2; hname2 << "TM_BestQual_In_" << Whname[iw] << "_MB" << ic ;
+        //stringstream hname2; hname2 << "TM_BestQual_In_" << Whname[iw] << "_MB" << ic ;
+        stringstream hname2; hname2 << "TM_BestQual_In_MB" << ic ;
         QualBestTMMB[iw][ic-1]=(TH1F*)theHisto->Clone(hname.str().c_str());
         QualBestTMMB[iw][ic-1]->SetTitle(hname2.str().c_str());
 
@@ -2636,6 +2897,7 @@ void DTDPGCreateWheelSummary::endJob(){
    first_to_paint_MB[ic-1][1]->SetTitle(hname22.str().c_str());
    first_to_paint_MB[ic-1][2]->SetTitle(hname23.str().c_str());
    first_to_paint_MB[ic-1][3]->SetTitle(hname24.str().c_str());
+
 
    for(int ityp=0;ityp<4;ityp++)
    {
@@ -3005,9 +3267,8 @@ void DTDPGCreateWheelSummary::endJob(){
   delete c0;
   delete ct2;
   delete ct3;
-  delete ct6;
   delete ct66;
-  for (int i=0;i<2;i++) delete ct7[i];
+  // for (int i=0;i<2;i++) delete ct7[i];
 
   if(ProcessDDUTrigger)
      for (int i=0;i<4;i++) delete ct5[i];
