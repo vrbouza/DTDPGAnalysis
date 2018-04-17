@@ -123,7 +123,9 @@ from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff i
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v15' 
 ##GlobalTag.globaltag = '90X_dataRun2_Express_v1'  ## Since CMSSW_8_3_0 (commisioning 2017) 
 ##GlobalTag.globaltag = '92X_dataRun2_Express_v2' ## For Express after 920 May2017 
-GlobalTag.globaltag = '92X_dataRun2_Express_v8' ## 
+##GlobalTag.globaltag = '92X_dataRun2_Express_v8' ## 
+GlobalTag.globaltag = '100X_dataRun2_Express_v2' ## For Express after 10_0_3 (March 2018) 
+
 
 
 
@@ -186,6 +188,8 @@ from DQM.L1TMonitor.L1TGMT_cfi import *
 ##sources = cms.Sequence( dummyProducer + dtDigiMonitor + dtTriggerMonitor + dtEfficiencyMonitor + dtChamberEfficiencyMonitor + dtSegmentAnalysisMonitor + dtResolutionAnalysisMonitor + l1tGmt)
 ## From, at least, 710 DTDataIntegrityTask MUST be included also in the sources if not the folders 00-DataIntegrity and FEDIntegrity are missing
 sources = cms.Sequence( dummyProducer + DTDataIntegrityTask + dtDigiMonitor + dtTriggerMonitor + dtEfficiencyMonitor + dtChamberEfficiencyMonitor + dtSegmentAnalysisMonitor + dtResolutionAnalysisMonitor + l1tGmt)
+
+sourcesonlyRECO = cms.Sequence( dummyProducer + dtEfficiencyMonitor + dtChamberEfficiencyMonitor + dtSegmentAnalysisMonitor + dtResolutionAnalysisMonitor)
 
 analysis = cms.Sequence(DTOfflineAnalyzer + DTEffOfflineAnalyzer + STAOfflineAnalyzer)
 
