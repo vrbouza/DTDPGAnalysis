@@ -10,6 +10,12 @@
  * Modified M.C Fouz. 2016/10/11 
  *          Updated for new DQM TM. Theta plots only 2 bins (Low & High) 
  *             (Before there were 8 for phi and theta)
+ * Modified M.C Fouz. 2018/01/24
+ *          Disabling the call to the RO utility due to the
+ *          new uROS code, and forcing to read all wheels and sectors
+ *          New program to be implemented in future to skeep Wh & S not
+ *          present in data if needed
+ *
  */
 
 
@@ -117,9 +123,18 @@ void DTDPGCreateSummary::endJob(){
   myMainFolder.append(cMainFolder);
   myMainFolder.append("/DT/Run summary/");
   
-  DTROUtility roUtil(myFile,myMainFolder);
-  map<int,std::vector<int> > mySectors = roUtil.getSectorMap();
-  
+  // FOR ROS DATA....
+  //DTROUtility roUtil(myFile,mainFold);
+  //map<int,std::vector<int> > mySectors = roUtil.getSectorMap();
+  // FOR uROS DATA.... Forcing to look to all the sectors
+     map<int,std::vector<int> > mySectors;
+     vector<int> rosInTheFED;
+     for(int isec=1;isec<15;isec++)
+       rosInTheFED.push_back(isec);
+
+     for (int iw=-2;iw<3;iw++)
+       mySectors[iw] = rosInTheFED;
+  // END FOR uROS DATA  Forcing to look to all the sectors
 
   edm::LogVerbatim ("DTDPGSummary") << "[DTDPGCreateSummary]: Creating summaries!";
  
@@ -131,7 +146,6 @@ void DTDPGCreateSummary::endJob(){
     std::vector<int>::const_iterator secEnd = (*whIt).second.end();
     for(;secIt!=secEnd;++secIt) {
       int sec = (*secIt);
-      if (myParameters.getUntrackedParameter<bool>("DataIntegrityHistos", false))      { createDataIntegrityPlots(wh,sec); }
       if (myParameters.getUntrackedParameter<bool>("DigiHistos", false))               { createDigiPlots(wh,sec); }
       if (myParameters.getUntrackedParameter<bool>("RecoHistos", false))               { createRecoPlots(wh,sec); }
       if (myParameters.getUntrackedParameter<bool>("ResoHistos", false))               { createResoPlots(wh,sec); }
@@ -168,165 +182,6 @@ void DTDPGCreateSummary::createGifFile(string fileName, int wh, int sec) {
 }
   
   
-
-void DTDPGCreateSummary::createDataIntegrityPlots(int wh, int sec) {
-
-  gStyle->SetTitleBorderSize(2);
-  bool checkDraw=false;
-  bool checkDraw2=false;
-
-  myCanvas->Clear();
-  myCanvas->Divide(2,2);    
-  stringstream dduID; 
-  //if(sec<7)dduID << wheelToDDU(wh);  // For 10 DDUs
-  //else dduID << wheelToDDU(wh)+5;    // For 10 DDUs
-  dduID << wheelToDDU(wh);  // For 5 DDUs
-  stringstream ROSID; ROSID << sec;            // fix ROS id for ROS Error histogram U.G. 28/8/07
-    
-  string histoName = myMainFolder + "00-DataIntegrity/FED" + dduID.str() + "/FED" + dduID.str() + "_TTSValues";
-  TH1F *histoTSSVal = (TH1F*) myFile -> Get(histoName.c_str());
-  myCanvas->cd(1);
-  if(histoTSSVal) {
-    checkDraw=true;
-    histoTSSVal->SetStats( 0 );  // no statistics
-    histoTSSVal->GetXaxis()->SetBinLabel(1,"disc.");
-    histoTSSVal->GetXaxis()->SetBinLabel(2,"overfl");
-    histoTSSVal->GetXaxis()->SetBinLabel(3,"out sync");
-    histoTSSVal->GetXaxis()->SetBinLabel(4,"busy");
-    histoTSSVal->GetXaxis()->SetBinLabel(5,"ready");
-    histoTSSVal->GetXaxis()->SetBinLabel(6,"error");
-    histoTSSVal->GetXaxis()->SetBinLabel(7,"disc.");
-    //histo1->Draw("colz");  // draw with colour palette
-    histoTSSVal->GetYaxis()->SetLabelSize(0.04);
-    histoTSSVal->GetXaxis()->SetLabelSize(0.05);
-    histoTSSVal->Draw();  
-  }
-    
-  histoName = myMainFolder + "00-DataIntegrity/FED" + dduID.str() + "/FED" + dduID.str() + "_ROSStatus";
-  TH1F *histoROSStatus = (TH1F*) myFile -> Get(histoName.c_str());
-  myCanvas->cd(2);
-  if(histoROSStatus) {
-    checkDraw=true;
-    histoROSStatus->SetStats( 0 );
-
-    histoROSStatus->GetXaxis()->SetBinLabel(1,"#splitline{ch.}{enable}");
-    histoROSStatus->GetXaxis()->SetBinLabel(2,"#splitline{time}{out}");
-    histoROSStatus->GetXaxis()->SetBinLabel(3,"#splitline{trailer}{lost}");
-    histoROSStatus->GetXaxis()->SetBinLabel(4,"#splitline{fiber}{lost}");
-    histoROSStatus->GetXaxis()->SetBinLabel(5,"#splitline{prop.}{err.}");
-    histoROSStatus->GetXaxis()->SetBinLabel(6,"#splitline{patt.}{err.}");
-    histoROSStatus->GetXaxis()->SetBinLabel(7,"#splitline{sign.}{lost}");
-    histoROSStatus->GetXaxis()->SetBinLabel(8,"#splitline{ROS }{err.}");
-    histoROSStatus->GetXaxis()->SetBinLabel(9,"#splitline{ROS }{in ev.}");
-    histoROSStatus->GetXaxis()->SetBinLabel(10,"#splitline{Miss }{ev.}");
-    histoROSStatus->GetXaxis()->SetBinLabel(11,"#splitline{Ev ID}{Miss}");
-    histoROSStatus->GetXaxis()->SetBinLabel(12,"#splitline{BX}{Miss}");
-    histoROSStatus->LabelsOption("h","X");
-    histoROSStatus->GetYaxis()->SetLabelSize(0.05);
-    histoROSStatus->GetXaxis()->SetLabelSize(0.06);
-
-    histoROSStatus->Draw("colz");
-  }
-
-  histoName = myMainFolder + "00-DataIntegrity"+ "/FED" + dduID.str() + "_ROSSummary";
-  TH1F *histoROSSummary = (TH1F*) myFile -> Get(histoName.c_str());
-  myCanvas->cd(3);
-  if(histoROSSummary) {
-    checkDraw=true;
-    histoROSSummary->SetStats( 0 );
-
-    histoROSSummary->GetXaxis()->SetBinLabel(1,"#splitline{Link}{TimeOut}");
-    histoROSSummary->GetXaxis()->SetBinLabel(2,"#splitline{Ev.Id.}{Mis.}");
-    histoROSSummary->GetXaxis()->SetBinLabel(3,"#splitline{FIFO}{#splitline{almost}{full}}");
-    histoROSSummary->GetXaxis()->SetBinLabel(4,"#splitline{FIFO}{full}");
-    histoROSSummary->GetXaxis()->SetBinLabel(5,"#splitline{Ceros}{Timeout}");
-    histoROSSummary->GetXaxis()->SetBinLabel(6,"#splitline{Max.}{wds}");
-    histoROSSummary->GetXaxis()->SetBinLabel(7,"#splitline{L1A}{FF}");
-    histoROSSummary->GetXaxis()->SetBinLabel(8,"#splitline{TDC}{#splitline{parity}{err.}}");
-  
-    histoROSSummary->GetXaxis()->SetBinLabel(9,"#splitline{BX ID}{Mis.}");
-    histoROSSummary->GetXaxis()->SetBinLabel(10,"TXP");
-  
-    histoROSSummary->GetXaxis()->SetBinLabel(11,"#splitline{L1A}{#splitline{almost}{full}}");
-    histoROSSummary->GetXaxis()->SetBinLabel(12,"#splitline{Ch}{blocked}");
-    histoROSSummary->GetXaxis()->SetBinLabel(13,"#splitline{Ev.}{#splitline{Id.}{Mis.}}");
-  
-    histoROSSummary->GetXaxis()->SetBinLabel(14,"#splitline{CEROS}{blocked}");
-    histoROSSummary->GetXaxis()->SetBinLabel(15,"#splitline{TDC}{Fatal}");
-    histoROSSummary->GetXaxis()->SetBinLabel(16,"#splitline{TDC}{#splitline{FIFO}{Ov.}}");
-    histoROSSummary->GetXaxis()->SetBinLabel(17,"#splitline{L1}{#splitline{Buffer}{Ov.}}");
-    histoROSSummary->GetXaxis()->SetBinLabel(18,"#splitline{L1A}{#splitline{FIFO}{Ov.}}");
-    histoROSSummary->GetXaxis()->SetBinLabel(19,"#splitline{TDC}{#splitline{hit}{err.}}");
-    histoROSSummary->GetXaxis()->SetBinLabel(20,"#splitline{TDC}{#splitline{hit}{rej.}}");
-    histoROSSummary->LabelsOption("h","X");
-      
-    histoROSSummary->Draw("colz");
-  }   
-
-  histoName = myMainFolder + "00-DataIntegrity/FED" + dduID.str() + "/ROS" + ROSID.str() + "/FED" + dduID.str() + "_ROS" + ROSID.str() + "_ROSError";
-  TH1F *histoROSError = (TH1F*) myFile -> Get(histoName.c_str());
-  myCanvas->cd(4);
-  myCanvas->cd(4)->SetBottomMargin(0.15);
-  if(histoROSError) {
-    checkDraw=true;
-    histoROSError->SetStats( 0 );
-    histoROSError->GetXaxis()->SetBinLabel(1,"#splitline{Link}{TimeOut}");
-    histoROSError->GetXaxis()->SetBinLabel(2,"#splitline{Ev.Id.}{Mis.}");
-    histoROSError->GetXaxis()->SetBinLabel(3,"#splitline{FIFO}{#splitline{almost}{full}}");
-    histoROSError->GetXaxis()->SetBinLabel(4,"#splitline{FIFO}{full}");
-    histoROSError->GetXaxis()->SetBinLabel(5,"#splitline{CEROS}{timeout}");
-    histoROSError->GetXaxis()->SetBinLabel(6,"#splitline{Max.}{wds}");
-    histoROSError->GetXaxis()->SetBinLabel(7,"#splitline{TDC}{#splitline{parity}{err}}");
-    histoROSError->GetXaxis()->SetBinLabel(8,"#splitline{BX ID}{Mis.}");
-    histoROSError->GetXaxis()->SetBinLabel(9,"#splitline{Ch}{blocked}");
-    histoROSError->GetXaxis()->SetBinLabel(10,"#splitline{Ev ID}{Mis.}");
-    histoROSError->GetXaxis()->SetBinLabel(11,"#splitline{CEROS}{blocked}");
-    histoROSError->GetXaxis()->SetBinLabel(12,"#splitline{TDC}{Fatal}");
-    histoROSError->GetXaxis()->SetBinLabel(13,"#splitline{TDC}{#splitline{FIFO}{Ov.}}");
-    histoROSError->GetXaxis()->SetBinLabel(14,"#splitline{L1}{#splitline{Buffer}{Ov.}}");
-    histoROSError->GetXaxis()->SetBinLabel(15,"#splitline{TDCL1A}{#splitline{FIFO}{Ov.}}");
-    histoROSError->GetXaxis()->SetBinLabel(16,"#splitline{TDC}{#splitline{hit}{err.}}");
-    histoROSError->GetXaxis()->SetBinLabel(17,"#splitline{TDC}{#splitline{hit}{rej.}}");
-    histoROSError->LabelsOption("h","X");
-    histoROSError->Draw("colz");
-  }
-  if(checkDraw) createGifFile("DataIntegrity",wh,sec);
-  
-  // Event Length
-  gStyle->SetStatW(0.29);
-  gStyle->SetOptTitle(0);
-  if(sec !=14 && sec !=13){
-    myCanvas->Clear();
-    myCanvas->Divide(2,2);
-      
-    histoName = myMainFolder + "00-DataIntegrity/FED" + dduID.str() +  "/FED" + dduID.str()  + "_EventLenght";
-    TH1F *histoEL = (TH1F*) myFile -> Get(histoName.c_str());
-    if(histoEL) {
-      checkDraw2=true;
-      myCanvas->cd(1);
-      gStyle->SetOptStat(111111);
-      histoEL->Draw();
-      myCanvas->cd(2)->SetLogy(1);
-      histoEL->Draw();
-    }
-      
-    histoName = myMainFolder + "00-DataIntegrity/FED" + dduID.str() + "/ROS" + ROSID.str() + "/FED" + dduID.str() + "_ROS" + ROSID.str() + "_ROSEventLenght";
-    TH1F *histoROSEL = (TH1F*) myFile -> Get(histoName.c_str());
-    if(histoROSEL) {
-      checkDraw2=true;
-      myCanvas->cd(3);
-      histoROSEL->Draw();
-      myCanvas->cd(4)->SetLogy(1);
-      histoROSEL->Draw();
-    }
-      
-    if(checkDraw2) createGifFile("EventLength",wh,sec);
-
-  }
-
-}
-
-
 void DTDPGCreateSummary::createDigiPlots(int wh, int sec) {
   bool  checkDraw=false;
   bool  checkDraw2=false;

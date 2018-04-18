@@ -37,7 +37,8 @@ dtunpacker = cms.EDProducer("DTUnpackingModule",
                             dqmOnly = cms.bool(False),   ## needed for new versions, at least >356  
                             readOutParameters = cms.PSet(debug = cms.untracked.bool(False),
                                                        rosParameters = cms.PSet(writeSC = cms.untracked.bool(True),
-                                                                                readingDDU = cms.untracked.bool(True),
+                                                                                ##readingDDU = cms.untracked.bool(True),
+                                                                                readingDDU = cms.untracked.bool(False), ## New data has not DDU Information
                                                                                 performDataIntegrityMonitor = cms.untracked.bool(True),
                                                                                 readDDUIDfromDDU = cms.untracked.bool(True),
                                                                                 debug = cms.untracked.bool(False),
@@ -60,7 +61,8 @@ from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff i
 
 
 from RecoLocalMuon.Configuration.RecoLocalMuonCosmics_cff import *
-dt1DRecHits.dtDigiLabel = 'dtunpacker'
+##dt1DRecHits.dtDigiLabel = 'dtunpacker'
+dt1DRecHits.dtDigiLabel = 'dturosunpacker'  ## for uROS2018
 
 from RecoMuon.MuonSeedGenerator.CosmicMuonSeedProducer_cfi import *
 CosmicMuonSeed.EnableCSCMeasurement=False
@@ -120,7 +122,10 @@ from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff i
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v10' ##for CMSSW_8_0_10 After insertion of TOTEM
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v15' 
 ##GlobalTag.globaltag = '90X_dataRun2_Express_v1'  ## Since CMSSW_8_3_0 (commisioning 2017) 
-GlobalTag.globaltag = '92X_dataRun2_Express_v2' ## For Express after 920 May2017 
+##GlobalTag.globaltag = '92X_dataRun2_Express_v2' ## For Express after 920 May2017 
+##GlobalTag.globaltag = '92X_dataRun2_Express_v8' ## 
+GlobalTag.globaltag = '100X_dataRun2_Express_v2' ## For Express after 10_0_3 (March 2018) 
+
 
 
 
@@ -139,11 +144,11 @@ globalreco = cms.Sequence(CosmicMuonSeed*offlineBeamSpot*cosmicMuons)
 # DT DPG DQM modules follow
 
 from UserCode.DTDPGAnalysis.DTOfflineAnalyzer_Cosmics_cfi import *
-##DTOfflineAnalyzer.SALabel = 'standAloneMuons'
-DTOfflineAnalyzer.SALabel = 'cosmicMuons'
+DTOfflineAnalyzer.SALabel = 'standAloneMuons'
+##DTOfflineAnalyzer.SALabel = 'cosmicMuons'
 from UserCode.DTDPGAnalysis.STAOfflineAnalyzer_Cosmics_cfi import *
-##STAOfflineAnalyzer.SALabel = 'standAloneMuons'
-STAOfflineAnalyzer.SALabel = 'cosmicMuons'
+STAOfflineAnalyzer.SALabel = 'standAloneMuons'
+##STAOfflineAnalyzer.SALabel = 'cosmicMuons'
 
 from UserCode.DTDPGAnalysis.DTEffOfflineAnalyzer_cfi import *
 
@@ -159,6 +164,7 @@ from DQM.DTMonitorModule.dtDigiTask_cfi import *
 dtDigiMonitor.readDB = True
 dtDigiMonitor.doNoiseOccupancies = True
 dtDigiMonitor.doInTimeOccupancies = True
+dtDigiMonitor.dtDigiLabel = 'dturosunpacker'  ## for uROS2018
 
 from DQM.DTMonitorModule.dtTriggerTask_cfi import *
 ##dtTriggerMonitor.process_dcc = True
@@ -182,6 +188,8 @@ from DQM.L1TMonitor.L1TGMT_cfi import *
 ##sources = cms.Sequence( dummyProducer + dtDigiMonitor + dtTriggerMonitor + dtEfficiencyMonitor + dtChamberEfficiencyMonitor + dtSegmentAnalysisMonitor + dtResolutionAnalysisMonitor + l1tGmt)
 ## From, at least, 710 DTDataIntegrityTask MUST be included also in the sources if not the folders 00-DataIntegrity and FEDIntegrity are missing
 sources = cms.Sequence( dummyProducer + DTDataIntegrityTask + dtDigiMonitor + dtTriggerMonitor + dtEfficiencyMonitor + dtChamberEfficiencyMonitor + dtSegmentAnalysisMonitor + dtResolutionAnalysisMonitor + l1tGmt)
+
+sourcesonlyRECO = cms.Sequence( dummyProducer + dtEfficiencyMonitor + dtChamberEfficiencyMonitor + dtSegmentAnalysisMonitor + dtResolutionAnalysisMonitor)
 
 analysis = cms.Sequence(DTOfflineAnalyzer + DTEffOfflineAnalyzer + STAOfflineAnalyzer)
 

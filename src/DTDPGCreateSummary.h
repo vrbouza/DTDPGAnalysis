@@ -64,9 +64,6 @@ class DTDPGCreateSummary: public edm::EDAnalyzer{
   /// Create Digi Plots
   void createDigiPlots(int wh, int sec);
 
-  /// Create Data Integrity Plots
-  void createDataIntegrityPlots(int wh, int sec);
-
   /// Create Resolution Plots
   void createResoPlots(int wh, int sec);
 
@@ -96,7 +93,6 @@ class DTDPGCreateSummary: public edm::EDAnalyzer{
   TFile *myFile;
   int myRunNumber;
   bool ProcessDDUTrigger;
-
 };
 
 #endif

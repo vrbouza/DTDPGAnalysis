@@ -12,6 +12,12 @@
  *          Updated for zooming automatically histo STAhits
  *          for STA collections having as rechits
  *          Segments instead of 1DRechits
+ * Modified M.C Fouz. 2018/01/24
+ *          Disabling the call to the RO utility due to the
+ *          new uROS code, and forcing to read all wheels and sectors
+ *          New program to be implemented in future to skeep Wh & S not
+ *          present in data if needed
+ *
  */
 
 
@@ -102,8 +108,19 @@ void DTDPGCreateAnalyzerSummary::endJob(){
   mainFold.append("/DT/Run summary/");
   edm::LogVerbatim ("DTDPGSummary") << "[DTDPGCreateAnalyzerSummary]: Creating summaries!";
 
-  DTROUtility roUtil(myFile,mainFold);
-  mySectors = roUtil.getSectorMap();
+  // FOR ROS DATA....
+  //DTROUtility roUtil(myFile,mainFold);
+  //mySectors = roUtil.getSectorMap();
+     
+  // FOR uROS DATA.... Forcing to look to all the sectors
+     vector<int> rosInTheFED;
+     for(int isec=1;isec<15;isec++)
+       rosInTheFED.push_back(isec);
+
+     for (int iw=-2;iw<3;iw++)
+       mySectors[iw] = rosInTheFED;
+  // END FOR uROS DATA  Forcing to look to all the sectors
+
 
   if (myParameters.getUntrackedParameter<bool>("SummaryHistos", false))    { createSummaryPlots(); }
   if (myParameters.getUntrackedParameter<bool>("SummaryWheelHistos", false)) { createSummaryWheelPlots(); }
@@ -210,6 +227,7 @@ void DTDPGCreateAnalyzerSummary::createSummaryPlots() {
   //TH1F *hTrg_effdenum_SecMB[5][14][4];  // Not being used and in 62X gives erors for being set but not used
   //TH1F *hPhiHL_SecMB[5][14][4];  // Not being used and in 62X gives erors for being set but not used
   //TH1F *TriggerMatrix[5][15];  // Not being used and in 62X gives erors for being set but not used
+
 
   std::map<int,std::vector<int> >::const_iterator whIt  = mySectors.begin();
   std::map<int,std::vector<int> >::const_iterator whEnd = mySectors.end();
@@ -424,6 +442,7 @@ void DTDPGCreateAnalyzerSummary::createSummaryPlots() {
 	    Tboxes->cd(icpos) ;
 	    first_to_paint->GetYaxis()->SetLabelSize(0.07);
 	    first_to_paint->GetXaxis()->SetLabelSize(0.07);
+	    first_to_paint->SetMinimum(0);
 	    first_to_paint->Draw();
 	    for(int il=1;il<5;il++){
 	      TBoxSecMBSlLayer[iw][isec-1][ich-1][isl-1][il-1]->Draw("same");
@@ -467,6 +486,7 @@ void DTDPGCreateAnalyzerSummary::createSummaryPlots() {
 	    TboxesSeg->cd(icpos) ;
 	    first_to_paint->GetYaxis()->SetLabelSize(0.07);
 	    first_to_paint->GetXaxis()->SetLabelSize(0.07);
+	    first_to_paint->SetMinimum(0);
 	    first_to_paint->Draw();
 	    for(int il=1;il<5;il++){
 	      TBoxSegSecMBSlLayer[iw][isec-1][ich-1][isl-1][il-1]->Draw("same");
@@ -507,6 +527,7 @@ void DTDPGCreateAnalyzerSummary::createSummaryPlots() {
 	    first_to_paint->SetTitle(htitle.str().c_str());
 	    first_to_paint->GetYaxis()->SetLabelSize(0.04);
 	    first_to_paint->GetXaxis()->SetLabelSize(0.04);
+	    first_to_paint->SetMinimum(0);
 	    first_to_paint->Draw();
 	    for(int il=1;il<5;il++){
 	      TBoxSecMBSlLayer[iw][isec-1][ich-1][isl-1][il-1]->Draw("same");
@@ -549,6 +570,7 @@ void DTDPGCreateAnalyzerSummary::createSummaryPlots() {
 	    first_to_paint->SetTitle(htitle.str().c_str());
 	    first_to_paint->GetYaxis()->SetLabelSize(0.04);
 	    first_to_paint->GetXaxis()->SetLabelSize(0.04);
+	    first_to_paint->SetMinimum(0);
 	    first_to_paint->Draw();
 	    for(int il=1;il<5;il++){
 	      TBoxSegSecMBSlLayer[iw][isec-1][ich-1][isl-1][il-1]->Draw("same");
@@ -955,6 +977,7 @@ void DTDPGCreateAnalyzerSummary::createSummaryWheelPlots() {
         //char htit[240];
         stringstream htitle; htitle << "TimeBox W" << iw-2 << " S" << ins << " MB"<< ic;
         first_to_paint->SetTitle(htitle.str().c_str());
+        first_to_paint->SetMinimum(0);
         first_to_paint->Draw();
         for(int isl=1;isl<4;isl++) hHisto[isl-1]->Draw("same");
       }
@@ -1059,6 +1082,7 @@ void DTDPGCreateAnalyzerSummary::createSummaryWheelPlots() {
         //char htit[240];
         stringstream htitle; htitle << "TimeBox W" << iw-2 << " S" << ins << " MB"<< ic;
         first_to_paint->SetTitle(htitle.str().c_str());
+	  first_to_paint->SetMinimum(0);
         first_to_paint->Draw();
         for(int isl=1;isl<4;isl++) hHisto[isl-1]->Draw("same");
       }

@@ -41,7 +41,9 @@ from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff i
 
 
 from RecoLocalMuon.Configuration.RecoLocalMuon_cff import *
-dt1DRecHits.dtDigiLabel = 'dtunpacker'
+##dt1DRecHits.dtDigiLabel = 'dtunpacker'
+dt1DRecHits.dtDigiLabel = 'dturosunpacker'  ## for uROS2018
+
 
 from RecoTracker.Configuration.RecoTracker_cff import *  ## Needed at least in  710pre8 to avoid an error in RecoMuon file (GroupedCkfTrajectoryBuilder)
 from RecoMuon.Configuration.RecoMuon_cff import *
@@ -87,7 +89,8 @@ from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff i
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v4' ##for CMSSW_8_0_X X>0
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v7' ##for CMSSW_8_0_X X>0
 ##GlobalTag.globaltag = '80X_dataRun2_Express_v10' ##for CMSSW_8_0_X X>0
-GlobalTag.globaltag = '92X_dataRun2_Express_v2' ## For Express after 920 May2017 
+##GlobalTag.globaltag = '92X_dataRun2_Express_v2' ## For Express after 920 May2017 
+GlobalTag.globaltag = '100X_dataRun2_Express_v2' ## For Express after 10_0_3 (March 2018) 
 
 
 
@@ -127,6 +130,8 @@ from DQM.DTMonitorModule.dtDigiTask_cfi import *
 dtDigiMonitor.readDB = True
 dtDigiMonitor.doNoiseOccupancies = True
 dtDigiMonitor.doInTimeOccupancies = True
+dtDigiMonitor.dtDigiLabel = 'dturosunpacker'  ## for uROS2018
+
 
 from DQM.DTMonitorModule.dtTriggerTask_cfi import *
 ##dtTriggerMonitor.process_dcc = True

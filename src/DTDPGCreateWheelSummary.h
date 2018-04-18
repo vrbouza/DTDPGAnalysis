@@ -69,6 +69,13 @@ protected:
   //std::ofstream* DeadChannelList;  // Problems after CMSSW_9_0_0 (see .cc file for more)
   std::ofstream DeadChannelList;
 
+  // File for uROS error list
+  std::ofstream fSummaryErrList;
+
+  // File for html  uROS error list
+  std::ofstream fSummaryErrListWeb;
+
+
  private:
 
   //  int nevents;
@@ -92,6 +99,10 @@ protected:
 
   //histos summary
   std::map< std::string , MonitorElement* > RecoHistos; // CB x+ MEs e non Histos???
+
+
+  // selection files production control
+  bool ProcessDataIntegrity; 
 
 
 };

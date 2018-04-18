@@ -20,6 +20,7 @@ createDTDPGDQMSummary = cms.EDAnalyzer("DTDPGCreateSummary",
 
 createDTDPGDQMWheelSummary = cms.EDAnalyzer("DTDPGCreateWheelSummary",
     # Input File Name
+    DataIntegrityHistos = cms.untracked.bool(True),
     rootFileName = cms.untracked.string(""),
     # Run Number
     runNumber = cms.untracked.int32(1),
