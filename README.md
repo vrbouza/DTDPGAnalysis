@@ -10,7 +10,7 @@ cd CMSSW_9_4_7/src/
 
 cmsenv
 
-git clone https://github.com/cmsdtoffline/DTDPGAnalysis UserCode/DTDPGAnalysis
+git clone https://github.com/cmsdtoffline/DTDPGAnalysis UserCode/DTDPGAnalysis -b TwinMuxAnalysis
 
 scramv1 b -j 5
 
