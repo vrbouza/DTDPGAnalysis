@@ -131,6 +131,9 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   dtTrigTwinMuxOutLabel_  = pset.getParameter<edm::InputTag>("dtTrigTwinMuxOutLabel");
   dtTrigTwinMuxOutToken_  = consumes<L1MuDTChambPhContainer>(edm::InputTag(dtTrigTwinMuxOutLabel_));
 
+  dtTrigTwinMuxOutEmuLabel_  = pset.getParameter<edm::InputTag>("dtTrigTwinMuxOutEmuLabel");
+  dtTrigTwinMuxOutEmuToken_  = consumes<L1MuDTChambPhContainer>(edm::InputTag(dtTrigTwinMuxOutEmuLabel_));
+
   staMuLabel_      = pset.getParameter<edm::InputTag>("staMuLabel");
   staMuToken_      = consumes<reco::MuonCollection>(edm::InputTag(staMuLabel_));
 
@@ -155,6 +158,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   dtsegmentsSize_  = pset.getParameter<int>("dtSegmentSize");
   cscsegmentsSize_ = pset.getParameter<int>("cscSegmentSize");
   dtltTwinMuxOutSize_     = pset.getParameter<int>("dtTrigTwinMuxOutSize");
+  dtltTwinMuxOutEmuSize_  = pset.getParameter<int>("dtTrigTwinMuxOutEmuSize");
   dtltTwinMuxInSize_ = pset.getParameter<int>("dtTrigTwinMuxInSize");
   dtltTwinMuxThSize_ = pset.getParameter<int>("dtTrigTwinMuxThSize");
   gmtSize_         = pset.getParameter<int>("gmtSize"); 
@@ -200,6 +204,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   idtsegments  = 0;
   icscsegments = 0;
   idtltTwinMuxOut     = 0;
+  idtltTwinMuxOutEmu  = 0;
   idtltTwinMuxIn     = 0;
   idtltTwinMux_th  = 0;
   imuons       = 0;
@@ -286,6 +291,10 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxOut;
   bool hasPhiTwinMuxOut=false;
   if(runOnRaw_) hasPhiTwinMuxOut=event.getByToken(dtTrigTwinMuxOutToken_,localTriggerTwinMuxOut);
+
+  edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxOutEmu;
+  bool hasPhiTwinMuxOutEmu=false;
+  if(runOnRaw_) hasPhiTwinMuxOutEmu=event.getByToken(dtTrigTwinMuxOutEmuToken_,localTriggerTwinMuxOutEmu);
 
   edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxIn;
   bool hasPhiTwinMuxIn=false;
@@ -396,6 +405,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   //TwinMux
   if(runOnRaw_ && hasPhiTwinMuxIn) fill_twinmuxin_variables(localTriggerTwinMuxIn);
   if(runOnRaw_ && hasPhiTwinMuxOut) fill_twinmuxout_variables(localTriggerTwinMuxOut);
+  if(runOnRaw_ && hasPhiTwinMuxOutEmu) fill_twinmuxout_emu_variables(localTriggerTwinMuxOutEmu);
   if(runOnRaw_ && hasThetaTwinMux) fill_twinmuxth_variables(localTriggerTwinMux_Th);
 
   //MUONS
@@ -418,7 +428,7 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
 
   if(!localDTmuons_)  analyzeRPCunpacking(event);
 
-  if(!localDTmuons_)  analyzeUnpackingRpcRecHit(event);
+  // if(!localDTmuons_)  analyzeUnpackingRpcRecHit(event);
   
   tree_->Fill();
 
@@ -760,6 +770,28 @@ void TTreeGenerator::fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer
       thcode=thcode | (0x1<<pos);
     ltTwinMux_thHits.push_back(thcode);
     idtltTwinMux_th++;
+  }
+  return;
+}
+
+void TTreeGenerator::fill_twinmuxout_emu_variables(edm::Handle<L1MuDTChambPhContainer> twinMuxOutEmu)
+{
+  idtltTwinMuxOutEmu = 0;
+  const std::vector<L1MuDTChambPhDigi>*  phTrigs = twinMuxOutEmu->getContainer();
+  for(std::vector<L1MuDTChambPhDigi>::const_iterator iph = phTrigs->begin(); iph != phTrigs->end() ; ++iph){
+    if(idtltTwinMuxOutEmu >= dtltTwinMuxOutEmuSize_) break;
+    if (iph->code()!=7){
+      ltTwinMuxOutEmu_wheel.push_back(iph->whNum());
+      ltTwinMuxOutEmu_sector.push_back(iph->scNum() + 1); // DTTF[0-11] -> DT[1-12] Sector Numbering
+      ltTwinMuxOutEmu_station.push_back(iph->stNum());
+      ltTwinMuxOutEmu_quality.push_back(iph->code());
+      ltTwinMuxOutEmu_rpcbit.push_back(iph->RpcBit());
+      ltTwinMuxOutEmu_bx.push_back(iph->bxNum());
+      ltTwinMuxOutEmu_phi.push_back(iph->phi());
+      ltTwinMuxOutEmu_phiB.push_back(iph->phiB());
+      ltTwinMuxOutEmu_is2nd.push_back(iph->Ts2Tag());
+      idtltTwinMuxOutEmu++;
+    }
   }
   return;
 }
@@ -1497,6 +1529,16 @@ void TTreeGenerator::beginJob()
   tree_->Branch("ltTwinMuxOut_phiB",&ltTwinMuxOut_phiB);
   tree_->Branch("ltTwinMuxOut_is2nd",&ltTwinMuxOut_is2nd);
 
+  tree_->Branch("ltTwinMuxOutEmu_wheel",&ltTwinMuxOutEmu_wheel);
+  tree_->Branch("ltTwinMuxOutEmu_sector",&ltTwinMuxOutEmu_sector);
+  tree_->Branch("ltTwinMuxOutEmu_station",&ltTwinMuxOutEmu_station);
+  tree_->Branch("ltTwinMuxOutEmu_quality",&ltTwinMuxOutEmu_quality);
+  tree_->Branch("ltTwinMuxOutEmu_rpcbit",&ltTwinMuxOutEmu_rpcbit);
+  tree_->Branch("ltTwinMuxOutEmu_bx",&ltTwinMuxOutEmu_bx);
+  tree_->Branch("ltTwinMuxOutEmu_phi",&ltTwinMuxOutEmu_phi);
+  tree_->Branch("ltTwinMuxOutEmu_phiB",&ltTwinMuxOutEmu_phiB);
+  tree_->Branch("ltTwinMuxOutEmu_is2nd",&ltTwinMuxOutEmu_is2nd);
+
   tree_->Branch("ltTwinMux_thWheel",&ltTwinMux_thWheel);
   tree_->Branch("ltTwinMux_thSector",&ltTwinMux_thSector);
   tree_->Branch("ltTwinMux_thStation",&ltTwinMux_thStation);
@@ -1604,6 +1646,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("Ndtsegments",&idtsegments,"Ndtsegments/S");
   tree_->Branch("Ncscsegments",&icscsegments,"Ncscsegments/S");
   tree_->Branch("NdtltTwinMuxOut",&idtltTwinMuxOut,"NdtltTwinMuxOut/S");
+  tree_->Branch("NdtltTwinMuxOutEmu",&idtltTwinMuxOutEmu,"NdtltTwinMuxOutEmu/S");
   tree_->Branch("NdtltTwinMux_th",&idtltTwinMux_th,"NdtltTwinMux_th/S");
   tree_->Branch("NdtltTwinMuxIn",&idtltTwinMuxIn,"NdtltTwinMuxIn/S");
   tree_->Branch("Nmuons",&imuons,"Nmuons/S");
@@ -1662,17 +1705,17 @@ void TTreeGenerator::beginJob()
    tree_->Branch("RpcDigiTwinMuxRawId", &RpcDigi_TwinMux_rawId);
      
    //Unpacking RPC RecHit
-   tree_->Branch("NirpcrechitsTwinMux", &irpcrechits_TwinMux);
-   tree_->Branch("RpcRecHitTwinMuxRegion", &RpcRechit_TwinMux_region);
-   tree_->Branch("RpcRecHitTwinMuxClusterSize", &RpcRechit_TwinMux_clusterSize);
-   tree_->Branch("RpcRecHitTwinMuxStrip", &RpcRechit_TwinMux_strip);
-   tree_->Branch("RpcRecHitTwinMuxBx", &RpcRechit_TwinMux_bx);
-   tree_->Branch("RpcRecHitTwinMuxStation", &RpcRechit_TwinMux_station);
-   tree_->Branch("RpcRecHitTwinMuxSector", &RpcRechit_TwinMux_sector);
-   tree_->Branch("RpcRecHitTwinMuxLayer", &RpcRechit_TwinMux_layer);
-   tree_->Branch("RpcRecHitTwinMuxSubsector", &RpcRechit_TwinMux_subsector);
-   tree_->Branch("RpcRecHitTwinMuxRoll", &RpcRechit_TwinMux_roll);
-   tree_->Branch("RpcRecHitTwinMuxRing", &RpcRechit_TwinMux_ring);
+   // tree_->Branch("NirpcrechitsTwinMux", &irpcrechits_TwinMux);
+   // tree_->Branch("RpcRecHitTwinMuxRegion", &RpcRechit_TwinMux_region);
+   // tree_->Branch("RpcRecHitTwinMuxClusterSize", &RpcRechit_TwinMux_clusterSize);
+   // tree_->Branch("RpcRecHitTwinMuxStrip", &RpcRechit_TwinMux_strip);
+   // tree_->Branch("RpcRecHitTwinMuxBx", &RpcRechit_TwinMux_bx);
+   // tree_->Branch("RpcRecHitTwinMuxStation", &RpcRechit_TwinMux_station);
+   // tree_->Branch("RpcRecHitTwinMuxSector", &RpcRechit_TwinMux_sector);
+   // tree_->Branch("RpcRecHitTwinMuxLayer", &RpcRechit_TwinMux_layer);
+   // tree_->Branch("RpcRecHitTwinMuxSubsector", &RpcRechit_TwinMux_subsector);
+   // tree_->Branch("RpcRecHitTwinMuxRoll", &RpcRechit_TwinMux_roll);
+   // tree_->Branch("RpcRecHitTwinMuxRing", &RpcRechit_TwinMux_ring);
 
   return;
 }
@@ -1777,6 +1820,16 @@ inline void TTreeGenerator::clear_Arrays()
   ltTwinMuxOut_phi.clear();
   ltTwinMuxOut_phiB.clear();
   ltTwinMuxOut_is2nd.clear();
+
+  ltTwinMuxOutEmu_wheel.clear();
+  ltTwinMuxOutEmu_sector.clear();
+  ltTwinMuxOutEmu_station.clear();
+  ltTwinMuxOutEmu_quality.clear();
+  ltTwinMuxOutEmu_rpcbit.clear();
+  ltTwinMuxOutEmu_bx.clear();
+  ltTwinMuxOutEmu_phi.clear();
+  ltTwinMuxOutEmu_phiB.clear();
+  ltTwinMuxOutEmu_is2nd.clear();
 
   ltTwinMux_thWheel.clear();
   ltTwinMux_thSector.clear();

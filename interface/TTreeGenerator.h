@@ -62,6 +62,7 @@ private:
   void fill_dtsegments_variables(edm::Handle<DTRecSegment4DCollection> segments4D, const DTGeometry* dtGeom_);
   void fill_cscsegments_variables(edm::Handle<CSCSegmentCollection> cscsegments);
   void fill_twinmuxout_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxOut);
+  void fill_twinmuxout_emu_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxOutEmu);
   void fill_twinmuxin_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxIn);
   void fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer> localTriggerTwinMux_Th);
   void fill_muon_variables(edm::Handle<reco::MuonCollection>  muList,
@@ -89,6 +90,8 @@ private:
   edm::EDGetTokenT<CSCSegmentCollection> cscSegmentToken_;
   edm::InputTag dtTrigTwinMuxOutLabel_;
   edm::EDGetTokenT<L1MuDTChambPhContainer> dtTrigTwinMuxOutToken_ ;
+  edm::InputTag dtTrigTwinMuxOutEmuLabel_;
+  edm::EDGetTokenT<L1MuDTChambPhContainer> dtTrigTwinMuxOutEmuToken_ ;
   edm::InputTag dtTrigTwinMuxInLabel_;
   edm::InputTag dtTrigTwinMuxThLabel_;
   edm::EDGetTokenT<L1MuDTChambPhContainer> dtTrigTwinMuxInToken_ ;
@@ -146,6 +149,7 @@ private:
   int dtsegmentsSize_;
   int cscsegmentsSize_;
   int dtltTwinMuxOutSize_;
+  int dtltTwinMuxOutEmuSize_;
   int dtltTwinMuxInSize_;
   int dtltTwinMuxThSize_;
   int gmtSize_;
@@ -157,6 +161,7 @@ private:
   short idtsegments;
   short icscsegments;
   short idtltTwinMuxOut;
+  short idtltTwinMuxOutEmu;
   short idtltTwinMuxIn;
   short idtltTwinMux_th;
   short imuons;

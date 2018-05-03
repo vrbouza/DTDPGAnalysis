@@ -130,6 +130,16 @@ std::vector<float> ltTwinMuxOut_phi;
 std::vector<float> ltTwinMuxOut_phiB;
 std::vector<short> ltTwinMuxOut_is2nd;
 
+std::vector<short> ltTwinMuxOutEmu_wheel;
+std::vector<short> ltTwinMuxOutEmu_sector;
+std::vector<short> ltTwinMuxOutEmu_station;
+std::vector<short> ltTwinMuxOutEmu_quality;
+std::vector<short> ltTwinMuxOutEmu_rpcbit;
+std::vector<short> ltTwinMuxOutEmu_bx;
+std::vector<float> ltTwinMuxOutEmu_phi;
+std::vector<float> ltTwinMuxOutEmu_phiB;
+std::vector<short> ltTwinMuxOutEmu_is2nd;
+
 std::vector<short> ltTwinMux_thBx;
 std::vector<short> ltTwinMux_thWheel;
 std::vector<short> ltTwinMux_thSector;
