@@ -717,7 +717,7 @@ void TTreeGenerator::fill_twinmuxout_variables(edm::Handle<L1MuDTChambPhContaine
     if(idtltTwinMuxOut >= dtltTwinMuxOutSize_) break;
     if (iph->code()!=7){
       ltTwinMuxOut_wheel.push_back(iph->whNum());
-      ltTwinMuxOut_sector.push_back(iph->scNum() + 1); // DTTF[0-11] -> DT[1-12] Sector Numbering
+      ltTwinMuxOut_sector.push_back(iph->scNum() + 1); // BMTF[0-11] -> DT[1-12] Sector Numbering
       ltTwinMuxOut_station.push_back(iph->stNum());
       ltTwinMuxOut_quality.push_back(iph->code());
       ltTwinMuxOut_rpcbit.push_back(iph->RpcBit());
@@ -740,7 +740,7 @@ void TTreeGenerator::fill_twinmuxin_variables(edm::Handle<L1MuDTChambPhContainer
     if(idtltTwinMuxIn >= dtltTwinMuxInSize_) break;
     if (iph->code()!=7){
       ltTwinMuxIn_wheel.push_back(iph->whNum());
-      ltTwinMuxIn_sector.push_back(iph->scNum() + 1); // DTTF[0-11] -> DT[1-12] Sector Numbering
+      ltTwinMuxIn_sector.push_back(iph->scNum() + 1); // BMTF[0-11] -> DT[1-12] Sector Numbering
       ltTwinMuxIn_station.push_back(iph->stNum());
       ltTwinMuxIn_quality.push_back(iph->code());
       if (iph->Ts2Tag()==1) ltTwinMuxIn_bx.push_back(iph->bxNum()-1);
@@ -761,7 +761,7 @@ void TTreeGenerator::fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer
   for(std::vector<L1MuDTChambThDigi>::const_iterator ith = thTrigs->begin(); ith != thTrigs->end() ; ++ith){
     if(idtltTwinMux_th >= dtltTwinMuxThSize_) break;
     ltTwinMux_thWheel.push_back(ith->whNum());
-    ltTwinMux_thSector.push_back(ith->scNum() + 1); // DTTF[0-11] -> DT[1-12] Sector Numbering
+    ltTwinMux_thSector.push_back(ith->scNum() + 1); // BMTF[0-11] -> DT[1-12] Sector Numbering
     ltTwinMux_thStation.push_back(ith->stNum());
     ltTwinMux_thBx.push_back(ith->bxNum());
     unsigned short int thcode=0;
@@ -782,7 +782,7 @@ void TTreeGenerator::fill_twinmuxout_emu_variables(edm::Handle<L1MuDTChambPhCont
     if(idtltTwinMuxOutEmu >= dtltTwinMuxOutEmuSize_) break;
     if (iph->code()!=7){
       ltTwinMuxOutEmu_wheel.push_back(iph->whNum());
-      ltTwinMuxOutEmu_sector.push_back(iph->scNum() + 1); // DTTF[0-11] -> DT[1-12] Sector Numbering
+      ltTwinMuxOutEmu_sector.push_back(iph->scNum() + 1); // BMTF[0-11] -> DT[1-12] Sector Numbering
       ltTwinMuxOutEmu_station.push_back(iph->stNum());
       ltTwinMuxOutEmu_quality.push_back(iph->code());
       ltTwinMuxOutEmu_rpcbit.push_back(iph->RpcBit());
@@ -1350,7 +1350,7 @@ void TTreeGenerator::analyzeBMTF(const edm::Event& event)
           Bmtf_phBx.push_back     (  DTPhDigiItr->bxNum() );
           Bmtf_phTs2Tag.push_back     ( DTPhDigiItr->Ts2Tag() );
           Bmtf_phWh.push_back     (  DTPhDigiItr->whNum() );
-          Bmtf_phSe.push_back     (  DTPhDigiItr->scNum() );
+          Bmtf_phSe.push_back     (  DTPhDigiItr->scNum() + 1); // BMTF[0-11] -> DT[1-12] Sector Numbering
           Bmtf_phSt.push_back     (  DTPhDigiItr->stNum() );
           Bmtf_phAng.push_back    (  DTPhDigiItr->phi()   );
           Bmtf_phBandAng.push_back(  DTPhDigiItr->phiB()  );
