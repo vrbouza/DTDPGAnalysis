@@ -997,13 +997,13 @@ void DTDPGCreateAnalyzerSummary::createSummaryWheelPlots() {
         ExtraS13S14->cd(iExtraPad); iExtraPad++;
         int nbmax=0; 
         first_to_paint=hHisto_extra[0];
-        if(first_to_paint !=NULL)nbmax=hHisto[0]->GetMaximum();
+        if(first_to_paint !=NULL)nbmax=hHisto_extra[0]->GetMaximum();
         for(int isl=2;isl<4;isl++){
          if(hHisto[isl-1] !=NULL) 
          {
           int nbmax0=hHisto[isl-1]->GetMaximum();
           if(nbmax0>nbmax)
-           { nbmax=nbmax0; first_to_paint=hHisto[isl-1];}
+           { nbmax=nbmax0; first_to_paint=hHisto_extra[isl-1];}
          }
         }
 
@@ -1011,6 +1011,7 @@ void DTDPGCreateAnalyzerSummary::createSummaryWheelPlots() {
         {
           stringstream nhtitle; nhtitle << "TimeBox W" << iw-2 << " S" << isec_extra << " MB"<< ic;
           first_to_paint->SetTitle(nhtitle.str().c_str());
+          first_to_paint->SetMinimum(0);
           first_to_paint->Draw();
           for(int isl=1;isl<4;isl++) hHisto_extra[isl-1]->Draw("same");
         }
