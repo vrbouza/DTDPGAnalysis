@@ -999,9 +999,9 @@ void DTDPGCreateAnalyzerSummary::createSummaryWheelPlots() {
         first_to_paint=hHisto_extra[0];
         if(first_to_paint !=NULL)nbmax=hHisto_extra[0]->GetMaximum();
         for(int isl=2;isl<4;isl++){
-         if(hHisto[isl-1] !=NULL) 
+         if(hHisto_extra[isl-1] !=NULL) 
          {
-          int nbmax0=hHisto[isl-1]->GetMaximum();
+          int nbmax0=hHisto_extra[isl-1]->GetMaximum();
           if(nbmax0>nbmax)
            { nbmax=nbmax0; first_to_paint=hHisto_extra[isl-1];}
          }
