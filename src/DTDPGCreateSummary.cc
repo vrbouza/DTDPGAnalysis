@@ -220,8 +220,7 @@ void DTDPGCreateSummary::createDigiPlots(int wh, int sec) {
 
       for(; slIt != slEnd; ++slIt) {
 	DTSuperLayerId sl = (*slIt)->id();
-	vector<const DTLayer*>::const_iterator lIt = (*slIt)->layers().begin(); 
-	vector<const DTLayer*>::const_iterator lEnd = (*slIt)->layers().end();
+
 	stringstream superLayer; superLayer << sl.superlayer();
 	
 	string histoName = digiFolder +  "/Sector" + sector.str() + "/Station" + station.str() +"/TimeBox_W" + wheel.str() + "_St" + station.str() + "_Sec" + sector.str()+ "_SL" + superLayer.str();
