@@ -43,7 +43,7 @@ myDTNtuple = cms.EDAnalyzer('TTreeGenerator',
                             bmtfInputThDigis = cms.InputTag("bmtfDigis"),
                             bmtfOutputDigis = cms.InputTag("bmtfDigis"),
                             rpcLabel                  = cms.InputTag("rpcUnpackingModule"),
-                            UnpackingRpcRecHitLabel = cms.InputTag("rpcRecHits", "", "DTNT"), # from unpacking RPC
+                            UnpackingRpcRecHitLabel = cms.InputTag("rpcRecHits"), # from unpacking RPC
                             OnlyBarrel = cms.bool(False), # Set False to save all rpc info (not only for Barrel)
                             #  UnpackingRpcRecHitLabel = cms.InputTag("rpcRecHits", "", "DTNTandRPC"), # from unpacking RPC
                             ## Parameters for retrieving the ttrig to correct the recHit times
