@@ -136,6 +136,12 @@ std::vector<short> ltTwinMux_thSector;
 std::vector<short> ltTwinMux_thStation;
 std::vector<short> ltTwinMux_thHits;
 
+//gen muon variables
+std::vector<float> Gen_mu_pt;
+std::vector<float> Gen_mu_phi;
+std::vector<float> Gen_mu_eta;
+std::vector<short> Gen_mu_charge;
+
 //muon variables
 std::vector<short> Mu_isMuGlobal;
 std::vector<short> Mu_isMuTracker;

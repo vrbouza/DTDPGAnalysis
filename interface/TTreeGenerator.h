@@ -30,6 +30,9 @@
 #include "DataFormats/L1TMuon/interface/RegionalMuonCand.h"
 #include "DataFormats/L1Trigger/interface/Muon.h"
 
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/HepMCCandidate/interface/GenStatusFlags.h"
+
 
 class DTTTrigBaseSync;
 
@@ -64,6 +67,7 @@ private:
   void fill_twinmuxout_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxOut);
   void fill_twinmuxin_variables(edm::Handle<L1MuDTChambPhContainer> localTriggerTwinMuxIn);
   void fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer> localTriggerTwinMux_Th);
+  void fill_gen_part_variables(edm::Handle<reco::GenParticleCollection>  genPart);
   void fill_muon_variables(edm::Handle<reco::MuonCollection>  muList,
 			   edm::Handle<trigger::TriggerEvent> hltEvent,
 			   const DTGeometry* dtGeom);
@@ -95,6 +99,8 @@ private:
   edm::EDGetTokenT<L1MuDTChambThContainer> dtTrigTwinMux_ThToken_ ;
   edm::InputTag staMuLabel_;
   edm::EDGetTokenT<reco::MuonCollection> staMuToken_;
+  edm::InputTag genPartLabel_;
+  edm::EDGetTokenT<reco::GenParticleCollection> genPartToken_;
   edm::InputTag gmtLabel_;
   edm::EDGetTokenT<l1t::MuonBxCollection> gmtToken_;
   edm::InputTag gtLabel_; // legacy
@@ -149,6 +155,7 @@ private:
   int dtltTwinMuxInSize_;
   int dtltTwinMuxThSize_;
   int gmtSize_;
+  int genPartSize_;
   int recoMuSize_;
   int rpcRecHitSize_;
 
@@ -159,6 +166,7 @@ private:
   short idtltTwinMuxOut;
   short idtltTwinMuxIn;
   short idtltTwinMux_th;
+  short iGenParts;
   short imuons;
   short igmt;
   short igtalgo; // legacy

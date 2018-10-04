@@ -126,10 +126,13 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   dtTrigTwinMuxInLabel_    = pset.getParameter<edm::InputTag>("dtTrigTwinMuxInLabel");
   dtTrigTwinMuxThLabel_    = pset.getParameter<edm::InputTag>("dtTrigTwinMuxThLabel");
   dtTrigTwinMuxInToken_    = consumes<L1MuDTChambPhContainer>(edm::InputTag(dtTrigTwinMuxInLabel_)); 
-  dtTrigTwinMux_ThToken_ = consumes<L1MuDTChambThContainer>(edm::InputTag(dtTrigTwinMuxThLabel_));
+  dtTrigTwinMux_ThToken_   = consumes<L1MuDTChambThContainer>(edm::InputTag(dtTrigTwinMuxThLabel_));
 
   dtTrigTwinMuxOutLabel_  = pset.getParameter<edm::InputTag>("dtTrigTwinMuxOutLabel");
   dtTrigTwinMuxOutToken_  = consumes<L1MuDTChambPhContainer>(edm::InputTag(dtTrigTwinMuxOutLabel_));
+
+  genPartLabel_ = pset.getParameter<edm::InputTag>("genPartLabel");
+  genPartToken_ = consumes<reco::GenParticleCollection>(edm::InputTag(genPartLabel_));
 
   staMuLabel_      = pset.getParameter<edm::InputTag>("staMuLabel");
   staMuToken_      = consumes<reco::MuonCollection>(edm::InputTag(staMuLabel_));
@@ -158,7 +161,8 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   dtltTwinMuxInSize_ = pset.getParameter<int>("dtTrigTwinMuxInSize");
   dtltTwinMuxThSize_ = pset.getParameter<int>("dtTrigTwinMuxThSize");
   gmtSize_         = pset.getParameter<int>("gmtSize"); 
-  recoMuSize_       = pset.getParameter<int>("recoMuSize");
+  genPartSize_     = pset.getParameter<int>("genPartSize");
+  recoMuSize_      = pset.getParameter<int>("recoMuSize");
   rpcRecHitSize_   = pset.getParameter<int>("rpcRecHitSize"); 
 
   PrimaryVertexTag_ = pset.getParameter<edm::InputTag>("PrimaryVertexTag");
@@ -202,6 +206,7 @@ TTreeGenerator::TTreeGenerator(const edm::ParameterSet& pset):
   idtltTwinMuxOut     = 0;
   idtltTwinMuxIn     = 0;
   idtltTwinMux_th  = 0;
+  iGenParts     = 0;
   imuons       = 0;
   igmt         = 0;
   igtalgo      = 0; // legacy
@@ -271,6 +276,8 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   else   // Added to cope with simulation including Digis
     if(runOnSimulation_ && runOnDigiSimLinks_) event.getByToken(dtDigiTokenSim_, dtdigisSim);
 
+  edm::Handle<reco::GenParticleCollection> genParts;
+  if(runOnSimulation_) event.getByToken(genPartToken_,genParts);
 
   edm::Handle<DTRecSegment4DCollection> dtsegments4D;
   event.getByToken(dtSegmentToken_, dtsegments4D);
@@ -397,6 +404,9 @@ void TTreeGenerator::analyze(const edm::Event& event, const edm::EventSetup& con
   if(runOnRaw_ && hasPhiTwinMuxIn) fill_twinmuxin_variables(localTriggerTwinMuxIn);
   if(runOnRaw_ && hasPhiTwinMuxOut) fill_twinmuxout_variables(localTriggerTwinMuxOut);
   if(runOnRaw_ && hasThetaTwinMux) fill_twinmuxth_variables(localTriggerTwinMux_Th);
+
+  //GEN PARTICLES
+  if(runOnSimulation_) fill_gen_part_variables(genParts);
 
   //MUONS
   if(!localDTmuons_) fill_muon_variables(MuList,hltEvent,dtGeom_);
@@ -762,6 +772,35 @@ void TTreeGenerator::fill_twinmuxth_variables(edm::Handle<L1MuDTChambThContainer
     idtltTwinMux_th++;
   }
   return;
+}
+
+void TTreeGenerator::fill_gen_part_variables(edm::Handle<reco::GenParticleCollection>  genParts)
+{
+  iGenParts = 0;
+
+  auto genPartIt  = genParts->begin();
+  auto genPartEnd = genParts->end();
+
+  for (; genPartIt != genPartEnd; ++genPartIt)
+    {
+
+      if(iGenParts >= genPartSize_) break;
+      
+      if(genPartIt->status() !=1 || 
+	 std::abs(genPartIt->pdgId()) != 13 || 
+	 genPartIt->pt() < 3)
+	continue;
+      
+      Gen_mu_pt.push_back(genPartIt->pt());
+      Gen_mu_eta.push_back(genPartIt->eta());
+      Gen_mu_phi.push_back(genPartIt->phi());
+      Gen_mu_charge.push_back(genPartIt->charge());
+
+      ++iGenParts;
+    }
+
+  return;
+
 }
 
 void TTreeGenerator::fill_muon_variables(edm::Handle<reco::MuonCollection>  muList,
@@ -1503,6 +1542,12 @@ void TTreeGenerator::beginJob()
   tree_->Branch("ltTwinMux_thBx",&ltTwinMux_thBx);
   tree_->Branch("ltTwinMux_thHits",&ltTwinMux_thHits);
 
+  //gen particle vatiables
+  tree_->Branch("Gen_mu_pt",&Gen_mu_pt);
+  tree_->Branch("Gen_mu_eta",&Gen_mu_eta);
+  tree_->Branch("Gen_mu_phi",&Gen_mu_phi);
+  tree_->Branch("Gen_mu_charge",&Gen_mu_charge);
+
   //muon variables
   tree_->Branch("Mu_isMuGlobal",&Mu_isMuGlobal);
   tree_->Branch("Mu_isMuTracker",&Mu_isMuTracker);
@@ -1606,6 +1651,7 @@ void TTreeGenerator::beginJob()
   tree_->Branch("NdtltTwinMuxOut",&idtltTwinMuxOut,"NdtltTwinMuxOut/S");
   tree_->Branch("NdtltTwinMux_th",&idtltTwinMux_th,"NdtltTwinMux_th/S");
   tree_->Branch("NdtltTwinMuxIn",&idtltTwinMuxIn,"NdtltTwinMuxIn/S");
+  tree_->Branch("Ngenmuons",&iGenParts,"Ngenmuons/S");
   tree_->Branch("Nmuons",&imuons,"Nmuons/S");
   tree_->Branch("Ngmt",&igmt,"Ngmt/S"); 
   tree_->Branch("Ngtalgo",&igtalgo,"Ngtalgo/S");
@@ -1783,6 +1829,12 @@ inline void TTreeGenerator::clear_Arrays()
   ltTwinMux_thStation.clear();
   ltTwinMux_thBx.clear();
   ltTwinMux_thHits.clear();
+
+  //gen muon variables
+  Gen_mu_pt.clear();
+  Gen_mu_eta.clear();
+  Gen_mu_phi.clear();
+  Gen_mu_charge.clear();
 
   //muon variables
   Mu_isMuGlobal.clear();
