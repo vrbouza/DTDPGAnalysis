@@ -46,17 +46,26 @@ process.load('RecoLuminosity.LumiProducer.lumiProducer_cfi')
 # process.load('EventFilter.L1TRawToDigi.l1tRawtoDigiBMTF_cfi')
 process.load('EventFilter.L1TRawToDigi.bmtfDigis_cfi')
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
 
 process.source = cms.Source("PoolSource",
 
   fileNames = cms.untracked.vstring
   (
-
-    '/store/data/Run2017F/SingleMuon/RAW-RECO/ZMu-17Nov2017-v1/00000/06FB9E1B-BEF1-E711-9122-0025905A608E.root',
+    #'/store/data/Run2017F/SingleMuon/RAW-RECO/ZMu-17Nov2017-v1/00000/06FB9E1B-BEF1-E711-9122-0025905A608E.root',    # La vaina de antes
+    '/store/mc/PhaseIIFall17D/SingleMu_FlatPt-2to100/GEN-SIM-DIGI-RAW/L1TnoPU_93X_upgrade2023_realistic_v5-v1/00000/F4EEAE55-C937-E811-8C29-48FD8EE739D1.root', # La vaina loca nueva
 
   ),
   secondaryFileNames = cms.untracked.vstring(
+  ),
+  inputCommands = cms.untracked.vstring(
+        'keep *',
+        'drop l1tEMTFHit2016Extras_simEmtfDigis_CSC_HLT',
+        'drop l1tEMTFHit2016Extras_simEmtfDigis_RPC_HLT',
+        'drop l1tEMTFHit2016s_simEmtfDigis__HLT',
+        'drop l1tEMTFTrack2016Extras_simEmtfDigis__HLT',
+        'drop l1tEMTFTrack2016s_simEmtfDigis__HLT'
   )
 )
 
