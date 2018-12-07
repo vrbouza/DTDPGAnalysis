@@ -33,7 +33,7 @@ myDTNtuple = cms.EDAnalyzer('TTreeGenerator',
                             # CB commented in code to avoid crashes
                             # lumiInputTag   = cms.InputTag("lumiProducer"),
                             runOnRaw = cms.bool(True),
-                            runOnSimulation = cms.bool(False),
+                            runOnSimulation = cms.bool(True),
                             runOnDigiSimLinks = cms.bool(False),
                             localDTmuons    = cms.bool(False),
                             # bmtfInputPhDigis = cms.InputTag("BMTFStage2Digis"),
